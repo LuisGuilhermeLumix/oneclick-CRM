@@ -6,6 +6,14 @@ export interface ChartPoint {
   date: string
   sms: number
   email: number
+  smsValue: number
+  emailValue: number
+}
+
+function parseDollar(val: any): number {
+  if (val === null || val === undefined || val === '') return 0
+  const n = parseFloat(String(val).replace(/[^0-9.]/g, ''))
+  return isNaN(n) ? 0 : n
 }
 
 export function useChartData() {
@@ -19,7 +27,7 @@ export function useChartData() {
       try {
         const { data: rows, error } = await supabase
           .from('tailgrab_nutra_eua_CRM')
-          .select('created_at, utm_source')
+          .select('created_at, utm_source, "($)"')
           .gte('created_at', `${dateFrom}T00:00:00.000Z`)
           .lte('created_at', `${dateTo}T23:59:59.999Z`)
           .eq('Event', 'order_paid')
@@ -27,13 +35,19 @@ export function useChartData() {
 
         if (error) throw error
 
-        const map: Record<string, { sms: number; email: number }> = {}
+        const map: Record<string, { sms: number; email: number; smsValue: number; emailValue: number }> = {}
 
         ;((rows ?? []) as any[]).forEach((r) => {
           const day = r.created_at.slice(0, 10)
-          if (!map[day]) map[day] = { sms: 0, email: 0 }
-          if (r.utm_source === 'SMS')   map[day].sms++
-          if (r.utm_source === 'EMAIL') map[day].email++
+          if (!map[day]) map[day] = { sms: 0, email: 0, smsValue: 0, emailValue: 0 }
+          if (r.utm_source === 'SMS') {
+            map[day].sms++
+            map[day].smsValue += parseDollar(r['($)'])
+          }
+          if (r.utm_source === 'EMAIL') {
+            map[day].email++
+            map[day].emailValue += parseDollar(r['($)'])
+          }
         })
 
         const points: ChartPoint[] = Object.entries(map)

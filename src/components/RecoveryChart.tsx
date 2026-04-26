@@ -12,20 +12,53 @@ import { formatDateShort, formatDateLong } from "@/lib/format";
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
+
+  const smsEntry = payload.find((p: any) => p.dataKey === "sms");
+  const emailEntry = payload.find((p: any) => p.dataKey === "email");
+
+  const data = payload[0]?.payload;
+  const smsValue = data?.smsValue ?? 0;
+  const emailValue = data?.emailValue ?? 0;
+
+  const formatUSD = (v: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+
   return (
-    <div className="rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] px-4 py-3 text-xs shadow-xl">
-      <div className="text-[#888] mb-1.5">{formatDateLong(label)}</div>
-      {payload.map((p: any) => (
-        <div key={p.dataKey} className="flex items-center gap-2">
-          <span
-            className="inline-block h-1.5 w-1.5 rounded-full"
-            style={{ background: p.color }}
-          />
-          <span style={{ color: p.color }}>
-            {p.dataKey === "sms" ? "SMS" : "Email"}: {p.value} vendas
+    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[160px]">
+      <p className="mb-2.5 text-[#666] font-medium">{formatDateLong(label)}</p>
+
+      {smsEntry && (
+        <div className="mb-1.5">
+          <div className="flex items-center justify-between gap-4">
+            <span style={{ color: "#80d7f8" }}>● SMS</span>
+            <span className="text-white font-semibold">{smsEntry.value} vendas</span>
+          </div>
+          <div className="flex justify-end">
+            <span className="text-[#80d7f8] font-medium">{formatUSD(smsValue)}</span>
+          </div>
+        </div>
+      )}
+
+      {emailEntry && (
+        <div>
+          <div className="flex items-center justify-between gap-4">
+            <span style={{ color: "#e65ff5" }}>● Email</span>
+            <span className="text-white font-semibold">{emailEntry.value} vendas</span>
+          </div>
+          <div className="flex justify-end">
+            <span className="text-[#e65ff5] font-medium">{formatUSD(emailValue)}</span>
+          </div>
+        </div>
+      )}
+
+      {(smsEntry || emailEntry) && (
+        <div className="mt-2 pt-2 border-t border-[#2a2a2a] flex items-center justify-between">
+          <span className="text-[#555]">Total</span>
+          <span className="text-white font-semibold">
+            {formatUSD(smsValue + emailValue)}
           </span>
         </div>
-      ))}
+      )}
     </div>
   );
 }

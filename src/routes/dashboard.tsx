@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Send, TrendingUp, Target, Receipt, DollarSign, Wallet, ShoppingCart } from "lucide-react";
+import { Send, TrendingUp, Target, Receipt, DollarSign, Wallet, ShoppingCart, BadgeDollarSign } from "lucide-react";
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { MetricCard } from "@/components/MetricCard";
@@ -65,7 +65,15 @@ function DashboardPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <MetricCard
+            label="Valor Recuperado"
+            icon={BadgeDollarSign}
+            variant="brand"
+            loading={loading}
+            value={formatCurrency(m.receitaRecuperada.total)}
+            subInfo={`SMS: ${formatCurrency(m.receitaRecuperada.sms)} | Email: ${formatCurrency(m.receitaRecuperada.email)}`}
+          />
           <MetricCard
             label="Comissão Lumix"
             icon={DollarSign}
