@@ -12,7 +12,7 @@ function parseDollar(val: any): number {
 }
 
 export interface DashboardMetrics {
-  carrinhosAbandonados: { total: number; sms: number; email: number }
+  carrinhosAbandonados: number
   disparosFeitos: { total: number; sms: number; email: number }
   vendasRecuperadas: { total: number; sms: number; email: number }
   taxaConversao: { total: number; sms: number; email: number }
@@ -23,7 +23,7 @@ export interface DashboardMetrics {
 }
 
 const zero: DashboardMetrics = {
-  carrinhosAbandonados: { total: 0, sms: 0, email: 0 },
+  carrinhosAbandonados: 0,
   disparosFeitos: { total: 0, sms: 0, email: 0 },
   vendasRecuperadas: { total: 0, sms: 0, email: 0 },
   taxaConversao: { total: 0, sms: 0, email: 0 },
@@ -51,33 +51,16 @@ export function useMetrics() {
 
         const productFilter = product && product !== 'Todos' ? product : null
 
-        const smsCartPromise =
-          channel !== 'Email'
-            ? (() => {
-                let q = supabase
-                  .from(TABLE)
-                  .select('id', { count: 'exact', head: true })
-                  .gte('created_at', from)
-                  .lte('created_at', to)
-                  .eq('Event', 'abandoned_cart_01_SMS')
-                if (productFilter) q = q.eq('product', productFilter)
-                return q
-              })()
-            : Promise.resolve({ count: 0, error: null as any })
-
-        const emailCartPromise =
-          channel !== 'SMS'
-            ? (() => {
-                let q = supabase
-                  .from(TABLE)
-                  .select('id', { count: 'exact', head: true })
-                  .gte('created_at', from)
-                  .lte('created_at', to)
-                  .eq('Event', 'abandoned_cart_01_EMAIL')
-                if (productFilter) q = q.eq('product', productFilter)
-                return q
-              })()
-            : Promise.resolve({ count: 0, error: null as any })
+        const cartPromise = (() => {
+          let q = supabase
+            .from(TABLE)
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', from)
+            .lte('created_at', to)
+            .eq('Event', 'abandoned_cart_01_SMS')
+          if (productFilter) q = q.eq('product', productFilter)
+          return q
+        })()
 
         const smsDisparosPromise =
           channel !== 'Email'
@@ -137,10 +120,9 @@ export function useMetrics() {
           .eq('id', 1)
           .maybeSingle()
 
-        const [smsCartRes, emailCartRes, smsDisRes, emailDisRes, salesRes, frontRes, cfgRes] =
+        const [cartRes, smsDisRes, emailDisRes, salesRes, frontRes, cfgRes] =
           await Promise.all([
-            smsCartPromise,
-            emailCartPromise,
+            cartPromise,
             smsDisparosPromise,
             emailDisparosPromise,
             salesPromise,
@@ -151,9 +133,7 @@ export function useMetrics() {
         if ((salesRes as any).error) throw (salesRes as any).error
         if (cancelled) return
 
-        const smsCart = (smsCartRes as any).count ?? 0
-        const emailCart = (emailCartRes as any).count ?? 0
-        const totalCart = smsCart + emailCart
+        const totalCart = (cartRes as any).count ?? 0
 
         const smsDisparos = (smsDisRes as any).count ?? 0
         const emailDisparos = (emailDisRes as any).count ?? 0
@@ -198,7 +178,7 @@ export function useMetrics() {
         }
 
         setMetrics({
-          carrinhosAbandonados: { total: totalCart, sms: smsCart, email: emailCart },
+          carrinhosAbandonados: totalCart,
           disparosFeitos: { total: totalDisparos, sms: smsDisparos, email: emailDisparos },
           vendasRecuperadas: { total: totalVendas, sms: smsVendas, email: emailVendas },
           taxaConversao: { total: taxaTotal, sms: taxaSms, email: taxaEmail },

@@ -41,8 +41,7 @@ function DashboardPage() {
             label="Carrinhos Abandonados"
             icon={ShoppingCart}
             loading={loading}
-            value={formatNumber(m.carrinhosAbandonados.total)}
-            subInfo={`SMS: ${formatNumber(m.carrinhosAbandonados.sms)} | Email: ${formatNumber(m.carrinhosAbandonados.email)}`}
+            value={formatNumber(m.carrinhosAbandonados)}
           />
           <MetricCard
             label="Disparos Feitos"
