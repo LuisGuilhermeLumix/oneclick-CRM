@@ -5,9 +5,10 @@ import { supabase } from "@/lib/supabase";
 interface CostsModalProps {
   open: boolean;
   onClose: () => void;
+  onSaved?: () => void;
 }
 
-export function CostsModal({ open, onClose }: CostsModalProps) {
+export function CostsModal({ open, onClose, onSaved }: CostsModalProps) {
   const [faturamento, setFaturamento] = useState("");
   const [custoSms, setCustoSms] = useState("");
   const [custoEmail, setCustoEmail] = useState("");
@@ -40,13 +41,16 @@ export function CostsModal({ open, onClose }: CostsModalProps) {
   async function handleSave() {
     setSaving(true);
     try {
-      await supabase.from("crm_config").upsert({
-        id: 1,
-        total_revenue_usd: parseFloat(faturamento) || 0,
-        sms_cost_usd: parseFloat(custoSms) || 0,
-        email_cost_usd: parseFloat(custoEmail) || 0,
-        updated_at: new Date().toISOString(),
-      });
+      await supabase
+        .from("crm_config")
+        .update({
+          total_revenue_usd: parseFloat(faturamento) || 0,
+          sms_cost_usd: parseFloat(custoSms) || 0,
+          email_cost_usd: parseFloat(custoEmail) || 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+      onSaved?.();
       onClose();
     } catch (e) {
       console.error(e);
@@ -87,21 +91,9 @@ export function CostsModal({ open, onClose }: CostsModalProps) {
         <div className="border-t border-[#1a1a1a] mb-5" />
 
         <div className="space-y-4">
-          <Field
-            label="Faturamento Total da Empresa ($)"
-            value={faturamento}
-            onChange={setFaturamento}
-          />
-          <Field
-            label="Custo Operacional SMS ($)"
-            value={custoSms}
-            onChange={setCustoSms}
-          />
-          <Field
-            label="Custo Operacional Email ($)"
-            value={custoEmail}
-            onChange={setCustoEmail}
-          />
+          <Field label="Faturamento Total ($)" value={faturamento} onChange={setFaturamento} />
+          <Field label="Custo SMS ($)" value={custoSms} onChange={setCustoSms} />
+          <Field label="Custo Email ($)" value={custoEmail} onChange={setCustoEmail} />
         </div>
 
         <button
@@ -127,9 +119,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-[#888] mb-1.5">
-        {label}
-      </label>
+      <label className="block text-xs font-medium text-[#888] mb-1.5">{label}</label>
       <input
         type="number"
         value={value}

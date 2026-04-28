@@ -70,7 +70,7 @@ export function AppLayout({
             <Menu size={20} />
           </button>
           <span className="text-sm font-bold tracking-wide">
-            <span className="text-[#80d7f8]">L</span>UMIX
+            <span className="text-[#80d7f8]">L</span>UMIX - GABRIEL
           </span>
           <div className="w-5" />
         </div>

@@ -25,7 +25,7 @@ export function LeadsTable() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Buscar por email..."
+            placeholder="Buscar por email ou nome..."
             className="h-9 w-72 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] pl-9 pr-3 text-sm text-white placeholder-[#444] focus:border-[#80d7f8] transition-colors"
           />
         </div>
@@ -56,23 +56,21 @@ export function LeadsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#0a0a0a]">
-              {["Data", "Nome", "Telefone", "Email", "Produto", "Canal", "Valor", "Status"].map(
-                (h) => (
-                  <th
-                    key={h}
-                    className="text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#555] px-4 py-3"
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
+              {["Data", "Nome", "Email", "Produto", "Canal", "Valor Recuperado", "Status"].map((h) => (
+                <th
+                  key={h}
+                  className="text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#555] px-4 py-3"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i} className="border-b border-[#0f0f0f]">
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} className="px-4 py-3.5">
                       <div className="h-4 rounded animate-pulse bg-white/[0.04]" />
                     </td>
@@ -81,7 +79,7 @@ export function LeadsTable() {
               ))
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-16 text-center">
+                <td colSpan={7} className="py-16 text-center">
                   <Inbox size={48} className="mx-auto text-[#333] mb-3" />
                   <div className="text-sm text-[#444]">Nenhum lead encontrado</div>
                 </td>
@@ -121,7 +119,7 @@ export function LeadsTable() {
                 <span className="text-[11px] text-[#555]">{formatDateLong(lead.date)}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold text-white">
-                    {formatCurrency(lead.value)}
+                    {formatCurrency(lead.recoveredValue)}
                   </span>
                   <StatusBadge status={lead.status} />
                 </div>
@@ -159,14 +157,13 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
         {formatDateLong(lead.date)}
       </td>
       <td className="px-4 py-3.5 text-[#ddd]">{lead.name}</td>
-      <td className="px-4 py-3.5 text-[#aaa] font-mono text-xs">{lead.number}</td>
       <td className="px-4 py-3.5 text-[#ddd]">{lead.email}</td>
       <td className="px-4 py-3.5 text-[#aaa]">{lead.product}</td>
       <td className="px-4 py-3.5">
         <ChannelBadge channel={lead.channel} />
       </td>
       <td className="px-4 py-3.5 text-white font-medium">
-        {formatCurrency(lead.value)}
+        {lead.status === "Recuperado" ? formatCurrency(lead.recoveredValue) : "—"}
       </td>
       <td className="px-4 py-3.5">
         <StatusBadge status={lead.status} />

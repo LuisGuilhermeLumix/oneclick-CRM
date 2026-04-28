@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
+import { calcComissaoLumix } from '@/lib/metrics'
+
+const TABLE = 'gabriel_info_eua_CRM'
 
 function parseDollar(val: any): number {
   if (val === null || val === undefined || val === '') return 0
-  const n = parseFloat(String(val).replace(/[^0-9.]/g, ''))
+  const n = parseFloat(String(val).replace(/[^0-9.\-]/g, ''))
   return isNaN(n) ? 0 : n
 }
 
 export interface DashboardMetrics {
-  carrinhosAbandonados: number
+  carrinhosAbandonados: { total: number; sms: number; email: number }
   disparosFeitos: { total: number; sms: number; email: number }
   vendasRecuperadas: { total: number; sms: number; email: number }
   taxaConversao: { total: number; sms: number; email: number }
@@ -20,7 +23,7 @@ export interface DashboardMetrics {
 }
 
 const zero: DashboardMetrics = {
-  carrinhosAbandonados: 0,
+  carrinhosAbandonados: { total: 0, sms: 0, email: 0 },
   disparosFeitos: { total: 0, sms: 0, email: 0 },
   vendasRecuperadas: { total: 0, sms: 0, email: 0 },
   taxaConversao: { total: 0, sms: 0, email: 0 },
@@ -31,7 +34,7 @@ const zero: DashboardMetrics = {
 }
 
 export function useMetrics() {
-  const { dateFrom, dateTo, channel } = useFilters()
+  const { dateFrom, dateTo, channel, product } = useFilters()
   const [metrics, setMetrics] = useState<DashboardMetrics>(zero)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,95 +47,163 @@ export function useMetrics() {
       setError(null)
       try {
         const from = `${dateFrom}T00:00:00.000Z`
-        const to   = `${dateTo}T23:59:59.999Z`
+        const to = `${dateTo}T23:59:59.999Z`
 
-        // Carrinhos abandonados — apenas primeiro disparo SMS (evita duplicidade)
-        const cartPromise = supabase
-          .from('tailgrab_nutra_eua_CRM')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', from).lte('created_at', to)
-          .eq('Event', 'abandoned_cart_01_SMS')
+        const productFilter = product && product !== 'Todos' ? product : null
 
-        const smsDisparosPromise = channel !== 'Email'
-          ? supabase
-              .from('tailgrab_nutra_eua_CRM')
-              .select('id', { count: 'exact', head: true })
-              .gte('created_at', from).lte('created_at', to)
-              .ilike('Event', '%abandoned_cart%SMS%')
-          : Promise.resolve({ count: 0, error: null as any })
+        const smsCartPromise =
+          channel !== 'Email'
+            ? (() => {
+                let q = supabase
+                  .from(TABLE)
+                  .select('id', { count: 'exact', head: true })
+                  .gte('created_at', from)
+                  .lte('created_at', to)
+                  .eq('Event', 'abandoned_cart_01_SMS')
+                if (productFilter) q = q.eq('product', productFilter)
+                return q
+              })()
+            : Promise.resolve({ count: 0, error: null as any })
 
-        const emailDisparosPromise = channel !== 'SMS'
-          ? supabase
-              .from('tailgrab_nutra_eua_CRM')
-              .select('id', { count: 'exact', head: true })
-              .gte('created_at', from).lte('created_at', to)
-              .ilike('Event', '%abandoned_cart%EMAIL%')
-          : Promise.resolve({ count: 0, error: null as any })
+        const emailCartPromise =
+          channel !== 'SMS'
+            ? (() => {
+                let q = supabase
+                  .from(TABLE)
+                  .select('id', { count: 'exact', head: true })
+                  .gte('created_at', from)
+                  .lte('created_at', to)
+                  .eq('Event', 'abandoned_cart_01_EMAIL')
+                if (productFilter) q = q.eq('product', productFilter)
+                return q
+              })()
+            : Promise.resolve({ count: 0, error: null as any })
 
-        const salesPromise = supabase
-          .from('tailgrab_nutra_eua_CRM')
-          .select('"($)", utm_source')
-          .gte('created_at', from).lte('created_at', to)
-          .eq('Event', 'order_paid')
-          .in('utm_source', ['SMS', 'EMAIL'])
+        const smsDisparosPromise =
+          channel !== 'Email'
+            ? (() => {
+                let q = supabase
+                  .from(TABLE)
+                  .select('id', { count: 'exact', head: true })
+                  .gte('created_at', from)
+                  .lte('created_at', to)
+                  .ilike('Event', '%abandoned_cart%SMS%')
+                if (productFilter) q = q.eq('product', productFilter)
+                return q
+              })()
+            : Promise.resolve({ count: 0, error: null as any })
 
-        const frontPromise = supabase
-          .from('tailgrab_nutra_eua_CRM')
-          .select('"($)"')
-          .gte('created_at', from).lte('created_at', to)
-          .eq('Event', 'order_paid')
-          .eq('utm_source', 'FRONT')
+        const emailDisparosPromise =
+          channel !== 'SMS'
+            ? (() => {
+                let q = supabase
+                  .from(TABLE)
+                  .select('id', { count: 'exact', head: true })
+                  .gte('created_at', from)
+                  .lte('created_at', to)
+                  .ilike('Event', '%abandoned_cart%EMAIL%')
+                if (productFilter) q = q.eq('product', productFilter)
+                return q
+              })()
+            : Promise.resolve({ count: 0, error: null as any })
 
-        const [cartRes, smsDisRes, emailDisRes, salesRes, frontRes] = await Promise.all([
-          cartPromise,
-          smsDisparosPromise,
-          emailDisparosPromise,
-          salesPromise,
-          frontPromise,
-        ])
+        const salesPromise = (() => {
+          let q = supabase
+            .from(TABLE)
+            .select('"($)", utm_source')
+            .gte('created_at', from)
+            .lte('created_at', to)
+            .eq('Event', 'order_paid')
+            .in('utm_source', ['SMS', 'EMAIL'])
+          if (productFilter) q = q.eq('product', productFilter)
+          return q
+        })()
 
-        if (salesRes.error) throw salesRes.error
+        const frontPromise = (() => {
+          let q = supabase
+            .from(TABLE)
+            .select('"($)"')
+            .gte('created_at', from)
+            .lte('created_at', to)
+            .eq('Event', 'order_paid')
+            .eq('utm_source', 'FRONT')
+          if (productFilter) q = q.eq('product', productFilter)
+          return q
+        })()
 
+        const cfgPromise = supabase
+          .from('crm_config')
+          .select('total_revenue_usd, sms_cost_usd, email_cost_usd')
+          .eq('id', 1)
+          .maybeSingle()
+
+        const [smsCartRes, emailCartRes, smsDisRes, emailDisRes, salesRes, frontRes, cfgRes] =
+          await Promise.all([
+            smsCartPromise,
+            emailCartPromise,
+            smsDisparosPromise,
+            emailDisparosPromise,
+            salesPromise,
+            frontPromise,
+            cfgPromise,
+          ])
+
+        if ((salesRes as any).error) throw (salesRes as any).error
         if (cancelled) return
 
-        const carrinhosAbandonados = (cartRes as any).count ?? 0
-        const smsDisparos   = (smsDisRes as any).count ?? 0
+        const smsCart = (smsCartRes as any).count ?? 0
+        const emailCart = (emailCartRes as any).count ?? 0
+        const totalCart = smsCart + emailCart
+
+        const smsDisparos = (smsDisRes as any).count ?? 0
         const emailDisparos = (emailDisRes as any).count ?? 0
         const totalDisparos = smsDisparos + emailDisparos
 
-        const allSales = (salesRes.data ?? []) as any[]
-        const smsSales   = channel === 'Email' ? [] : allSales.filter((r) => r.utm_source === 'SMS')
-        const emailSales = channel === 'SMS'   ? [] : allSales.filter((r) => r.utm_source === 'EMAIL')
+        const allSales = ((salesRes as any).data ?? []) as any[]
+        const smsSales =
+          channel === 'Email' ? [] : allSales.filter((r) => r.utm_source === 'SMS')
+        const emailSales =
+          channel === 'SMS' ? [] : allSales.filter((r) => r.utm_source === 'EMAIL')
 
-        const smsVendas   = smsSales.length
+        const smsVendas = smsSales.length
         const emailVendas = emailSales.length
         const totalVendas = smsVendas + emailVendas
 
-        const smsReceita   = smsSales.reduce((acc, r) => acc + parseDollar(r['($)']), 0)
+        const smsReceita = smsSales.reduce((acc, r) => acc + parseDollar(r['($)']), 0)
         const emailReceita = emailSales.reduce((acc, r) => acc + parseDollar(r['($)']), 0)
         const totalReceita = smsReceita + emailReceita
 
-        const ticketSms   = smsVendas   > 0 ? smsReceita   / smsVendas   : 0
+        const ticketSms = smsVendas > 0 ? smsReceita / smsVendas : 0
         const ticketEmail = emailVendas > 0 ? emailReceita / emailVendas : 0
         const ticketTotal = totalVendas > 0 ? totalReceita / totalVendas : 0
 
-        const taxaSms   = smsDisparos   > 0 ? (smsVendas   / smsDisparos)   * 100 : 0
+        const taxaSms = smsDisparos > 0 ? (smsVendas / smsDisparos) * 100 : 0
         const taxaEmail = emailDisparos > 0 ? (emailVendas / emailDisparos) * 100 : 0
         const taxaTotal = totalDisparos > 0 ? (totalVendas / totalDisparos) * 100 : 0
 
-        const comissao = totalReceita * 0.13
+        const comissao = calcComissaoLumix(totalReceita)
 
-        const frontSales  = (frontRes.data ?? []) as any[]
-        const frontTotal  = frontSales.reduce((acc, r) => acc + parseDollar(r['($)']), 0)
-        const faturamentoPct = frontTotal > 0 ? (totalReceita / frontTotal) * 100 : 0
+        const cfg = (cfgRes as any).data
+        const totalRevenueCfg = parseDollar(cfg?.total_revenue_usd)
+        const smsCost = parseDollar(cfg?.sms_cost_usd)
+        const emailCost = parseDollar(cfg?.email_cost_usd)
+
+        let faturamentoPct = 0
+        if (totalRevenueCfg > 0) {
+          faturamentoPct = ((totalReceita - smsCost - emailCost) / totalRevenueCfg) * 100
+        } else {
+          const frontSales = ((frontRes as any).data ?? []) as any[]
+          const frontTotal = frontSales.reduce((acc, r) => acc + parseDollar(r['($)']), 0)
+          faturamentoPct = frontTotal > 0 ? (totalReceita / frontTotal) * 100 : 0
+        }
 
         setMetrics({
-          carrinhosAbandonados,
-          disparosFeitos:    { total: totalDisparos, sms: smsDisparos,   email: emailDisparos },
-          vendasRecuperadas: { total: totalVendas,   sms: smsVendas,     email: emailVendas   },
-          taxaConversao:     { total: taxaTotal,     sms: taxaSms,       email: taxaEmail     },
-          ticketMedio:       { total: ticketTotal,   sms: ticketSms,     email: ticketEmail   },
-          receitaRecuperada: { total: totalReceita,  sms: smsReceita,    email: emailReceita  },
+          carrinhosAbandonados: { total: totalCart, sms: smsCart, email: emailCart },
+          disparosFeitos: { total: totalDisparos, sms: smsDisparos, email: emailDisparos },
+          vendasRecuperadas: { total: totalVendas, sms: smsVendas, email: emailVendas },
+          taxaConversao: { total: taxaTotal, sms: taxaSms, email: taxaEmail },
+          ticketMedio: { total: ticketTotal, sms: ticketSms, email: ticketEmail },
+          receitaRecuperada: { total: totalReceita, sms: smsReceita, email: emailReceita },
           comissaoLumix: comissao,
           faturamentoSobFrontPct: faturamentoPct,
         })
@@ -144,8 +215,10 @@ export function useMetrics() {
     }
 
     load()
-    return () => { cancelled = true }
-  }, [dateFrom, dateTo, channel])
+    return () => {
+      cancelled = true
+    }
+  }, [dateFrom, dateTo, channel, product])
 
   return { metrics, loading, error }
 }

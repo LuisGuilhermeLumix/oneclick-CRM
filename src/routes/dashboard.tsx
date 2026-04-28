@@ -1,5 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Send, TrendingUp, Target, Receipt, DollarSign, Wallet, ShoppingCart, BadgeDollarSign } from "lucide-react";
+import {
+  Send,
+  TrendingUp,
+  Target,
+  Receipt,
+  DollarSign,
+  Wallet,
+  BadgeDollarSign,
+  ShoppingCart,
+} from "lucide-react";
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { MetricCard } from "@/components/MetricCard";
@@ -12,7 +21,7 @@ import { formatCurrency, formatNumber, formatPercent } from "@/lib/format";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Lumix Recovery" },
+      { title: "Dashboard — Lumix - Gabriel" },
       { name: "description", content: "Métricas de recuperação de vendas em tempo real." },
     ],
   }),
@@ -21,18 +30,19 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   const [costsOpen, setCostsOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const { metrics: m, loading } = useMetrics();
 
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <MetricCard
             label="Carrinhos Abandonados"
             icon={ShoppingCart}
             loading={loading}
-            value={formatNumber(m.carrinhosAbandonados)}
-            subInfo="Leads únicos no período"
+            value={formatNumber(m.carrinhosAbandonados.total)}
+            subInfo={`SMS: ${formatNumber(m.carrinhosAbandonados.sms)} | Email: ${formatNumber(m.carrinhosAbandonados.email)}`}
           />
           <MetricCard
             label="Disparos Feitos"
@@ -56,6 +66,9 @@ function DashboardPage() {
             value={formatPercent(m.taxaConversao.total, 1)}
             subInfo={`SMS: ${formatPercent(m.taxaConversao.sms, 1)} | Email: ${formatPercent(m.taxaConversao.email, 1)}`}
           />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <MetricCard
             label="Ticket Médio"
             icon={Receipt}
@@ -63,9 +76,6 @@ function DashboardPage() {
             value={formatCurrency(m.ticketMedio.total)}
             subInfo={`SMS: ${formatCurrency(m.ticketMedio.sms)} | Email: ${formatCurrency(m.ticketMedio.email)}`}
           />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <MetricCard
             label="Valor Recuperado"
             icon={BadgeDollarSign}
@@ -80,7 +90,7 @@ function DashboardPage() {
             variant="brand2"
             loading={loading}
             value={formatCurrency(m.comissaoLumix)}
-            subInfo="13% sobre receita recuperada no período"
+            subInfo="25% sobre receita recuperada no período"
           />
           <MetricCard
             label="Faturamento Sob o Front"
@@ -97,7 +107,12 @@ function DashboardPage() {
         <LeadsTable />
       </div>
 
-      <CostsModal open={costsOpen} onClose={() => setCostsOpen(false)} />
+      <CostsModal
+        key={reloadKey}
+        open={costsOpen}
+        onClose={() => setCostsOpen(false)}
+        onSaved={() => setReloadKey((k) => k + 1)}
+      />
     </AppLayout>
   );
 }

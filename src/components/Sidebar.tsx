@@ -1,11 +1,10 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Route as RouteIcon, LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/tracking", label: "Tracking Codes", icon: RouteIcon },
 ] as const;
 
 interface SidebarProps {

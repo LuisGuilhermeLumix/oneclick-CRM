@@ -8,7 +8,7 @@ import {
   YAxis,
 } from "recharts";
 import { useChartData } from "@/hooks/useChartData";
-import { formatDateShort, formatDateLong } from "@/lib/format";
+import { formatDateShort, formatDateLong, formatCurrency } from "@/lib/format";
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
@@ -19,9 +19,6 @@ function CustomTooltip({ active, payload, label }: any) {
   const data = payload[0]?.payload;
   const smsValue = data?.smsValue ?? 0;
   const emailValue = data?.emailValue ?? 0;
-
-  const formatUSD = (v: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
 
   return (
     <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[160px]">
@@ -34,7 +31,7 @@ function CustomTooltip({ active, payload, label }: any) {
             <span className="text-white font-semibold">{smsEntry.value} vendas</span>
           </div>
           <div className="flex justify-end">
-            <span className="text-[#80d7f8] font-medium">{formatUSD(smsValue)}</span>
+            <span className="text-[#80d7f8] font-medium">{formatCurrency(smsValue)}</span>
           </div>
         </div>
       )}
@@ -46,7 +43,7 @@ function CustomTooltip({ active, payload, label }: any) {
             <span className="text-white font-semibold">{emailEntry.value} vendas</span>
           </div>
           <div className="flex justify-end">
-            <span className="text-[#e65ff5] font-medium">{formatUSD(emailValue)}</span>
+            <span className="text-[#e65ff5] font-medium">{formatCurrency(emailValue)}</span>
           </div>
         </div>
       )}
@@ -55,7 +52,7 @@ function CustomTooltip({ active, payload, label }: any) {
         <div className="mt-2 pt-2 border-t border-[#2a2a2a] flex items-center justify-between">
           <span className="text-[#555]">Total</span>
           <span className="text-white font-semibold">
-            {formatUSD(smsValue + emailValue)}
+            {formatCurrency(smsValue + emailValue)}
           </span>
         </div>
       )}
