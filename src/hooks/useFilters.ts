@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 
-export type Channel = 'Todos' | 'SMS' | 'Email'
 export type RangeKey = 'hoje' | '7d' | 'mes' | '90d' | 'custom'
 
 function toDateStr(date: Date): string {
@@ -13,12 +12,10 @@ const defaultFrom = new Date(today.getFullYear(), today.getMonth(), 1)
 interface FiltersState {
   dateFrom: string
   dateTo: string
-  channel: Channel
   product: string
   activeRange: RangeKey
   setDateFrom: (v: string) => void
   setDateTo: (v: string) => void
-  setChannel: (v: Channel) => void
   setProduct: (v: string) => void
   setRange: (key: 'hoje' | '7d' | 'mes' | '90d') => void
 }
@@ -26,12 +23,10 @@ interface FiltersState {
 export const useFilters = create<FiltersState>((set) => ({
   dateFrom: toDateStr(defaultFrom),
   dateTo: toDateStr(today),
-  channel: 'Todos',
   product: 'Todos',
   activeRange: 'mes',
   setDateFrom: (v) => set({ dateFrom: v, activeRange: 'custom' }),
   setDateTo: (v) => set({ dateTo: v, activeRange: 'custom' }),
-  setChannel: (v) => set({ channel: v }),
   setProduct: (v) => set({ product: v }),
   setRange: (key) => {
     const to = new Date()

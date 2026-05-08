@@ -2,24 +2,27 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 
-const TABLE = 'gabriel_info_eua_CRM'
+const TABLE = 'obliviumdigital_nutra_br_CRM'
 
 export interface ChartPoint {
   date: string
-  sms: number
-  email: number
-  smsValue: number
-  emailValue: number
+  sales: number
+  value: number
 }
 
-function parseDollar(val: any): number {
+function parseNum(val: any): number {
   if (val === null || val === undefined || val === '') return 0
-  const n = parseFloat(String(val).replace(/[^0-9.\-]/g, ''))
+  if (typeof val === 'number') return isNaN(val) ? 0 : val
+  let s = String(val).replace(/[^0-9.,\-]/g, '')
+  if (s.includes(',')) {
+    s = s.replace(/\./g, '').replace(',', '.')
+  }
+  const n = parseFloat(s)
   return isNaN(n) ? 0 : n
 }
 
 export function useChartData() {
-  const { dateFrom, dateTo, product, channel } = useFilters()
+  const { dateFrom, dateTo, product } = useFilters()
   const [data, setData] = useState<ChartPoint[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -29,32 +32,23 @@ export function useChartData() {
       try {
         let q = supabase
           .from(TABLE)
-          .select('created_at, utm_source, "($)"')
+          .select('created_at, "($)"')
           .gte('created_at', `${dateFrom}T00:00:00.000Z`)
           .lte('created_at', `${dateTo}T23:59:59.999Z`)
           .eq('Event', 'order_paid')
-          .in('utm_source', ['SMS', 'EMAIL'])
+          .eq('utm_source', 'WPP')
 
-        if (channel === 'SMS') q = q.eq('utm_source', 'SMS')
-        if (channel === 'Email') q = q.eq('utm_source', 'EMAIL')
         if (product && product !== 'Todos') q = q.eq('product', product)
 
         const { data: rows, error } = await q
         if (error) throw error
 
-        const map: Record<string, { sms: number; email: number; smsValue: number; emailValue: number }> = {}
-
+        const map: Record<string, { sales: number; value: number }> = {}
         ;((rows ?? []) as any[]).forEach((r) => {
           const day = String(r.created_at).slice(0, 10)
-          if (!map[day]) map[day] = { sms: 0, email: 0, smsValue: 0, emailValue: 0 }
-          if (r.utm_source === 'SMS') {
-            map[day].sms++
-            map[day].smsValue += parseDollar(r['($)'])
-          }
-          if (r.utm_source === 'EMAIL') {
-            map[day].email++
-            map[day].emailValue += parseDollar(r['($)'])
-          }
+          if (!map[day]) map[day] = { sales: 0, value: 0 }
+          map[day].sales++
+          map[day].value += parseNum(r['($)'])
         })
 
         const points: ChartPoint[] = Object.entries(map)
@@ -69,7 +63,7 @@ export function useChartData() {
       }
     }
     load()
-  }, [dateFrom, dateTo, product, channel])
+  }, [dateFrom, dateTo, product])
 
   return { data, loading }
 }

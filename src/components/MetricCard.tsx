@@ -7,7 +7,7 @@ interface MetricCardProps {
   subInfo?: ReactNode;
   icon?: LucideIcon;
   loading?: boolean;
-  variant?: "default" | "brand" | "brand2";
+  variant?: "default" | "brand" | "brand2" | "success";
   editable?: boolean;
   onEdit?: () => void;
 }
@@ -27,21 +27,27 @@ export function MetricCard({
       ? "text-[#80d7f8]"
       : variant === "brand2"
         ? "text-[#e65ff5]"
-        : "text-white";
+        : variant === "success"
+          ? "text-[#22c55e]"
+          : "text-white";
 
   const borderClass =
     variant === "brand"
       ? "border-[rgba(128,215,248,0.2)] hover:border-[rgba(128,215,248,0.35)]"
       : variant === "brand2"
         ? "border-[rgba(230,95,245,0.2)] hover:border-[rgba(230,95,245,0.35)]"
-        : "border-[#1e1e1e] hover:border-[rgba(128,215,248,0.2)]";
+        : variant === "success"
+          ? "border-[rgba(34,197,94,0.2)] hover:border-[rgba(34,197,94,0.35)]"
+          : "border-[#1e1e1e] hover:border-[rgba(128,215,248,0.2)]";
 
   const bgStyle =
     variant === "brand2"
       ? { background: "linear-gradient(135deg, #101010 0%, rgba(230,95,245,0.04) 100%)" }
       : variant === "brand"
         ? { background: "linear-gradient(135deg, #101010 0%, rgba(128,215,248,0.04) 100%)" }
-        : { backgroundColor: "#101010" };
+        : variant === "success"
+          ? { background: "linear-gradient(135deg, #101010 0%, rgba(34,197,94,0.04) 100%)" }
+          : { backgroundColor: "#101010" };
 
   return (
     <div

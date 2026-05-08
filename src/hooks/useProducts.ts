@@ -11,7 +11,7 @@ export function useProducts() {
       setLoading(true)
       try {
         const { data, error } = await supabase
-          .from('gabriel_info_eua_CRM')
+          .from('obliviumdigital_nutra_br_CRM')
           .select('product')
           .not('product', 'is', null)
           .limit(5000)

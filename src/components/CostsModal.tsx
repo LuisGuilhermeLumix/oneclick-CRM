@@ -10,8 +10,6 @@ interface CostsModalProps {
 
 export function CostsModal({ open, onClose, onSaved }: CostsModalProps) {
   const [faturamento, setFaturamento] = useState("");
-  const [custoSms, setCustoSms] = useState("");
-  const [custoEmail, setCustoEmail] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -26,14 +24,12 @@ export function CostsModal({ open, onClose, onSaved }: CostsModalProps) {
     if (!open) return;
     supabase
       .from("crm_config")
-      .select("total_revenue_usd, sms_cost_usd, email_cost_usd")
+      .select("total_revenue_usd")
       .eq("id", 1)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setFaturamento(String(data.total_revenue_usd ?? ""));
-          setCustoSms(String(data.sms_cost_usd ?? ""));
-          setCustoEmail(String(data.email_cost_usd ?? ""));
         }
       });
   }, [open]);
@@ -45,8 +41,6 @@ export function CostsModal({ open, onClose, onSaved }: CostsModalProps) {
         .from("crm_config")
         .update({
           total_revenue_usd: parseFloat(faturamento) || 0,
-          sms_cost_usd: parseFloat(custoSms) || 0,
-          email_cost_usd: parseFloat(custoEmail) || 0,
           updated_at: new Date().toISOString(),
         })
         .eq("id", 1);
@@ -76,7 +70,7 @@ export function CostsModal({ open, onClose, onSaved }: CostsModalProps) {
         className="w-[440px] max-w-full rounded-2xl bg-[#0f0f0f] border border-[#2a2a2a] p-8"
       >
         <div className="flex items-start justify-between mb-1">
-          <h3 className="text-lg font-bold text-white">Configuração de Custos</h3>
+          <h3 className="text-lg font-bold text-white">Configuração de Faturamento</h3>
           <button
             onClick={onClose}
             className="text-[#444] hover:text-white transition-colors"
@@ -86,14 +80,12 @@ export function CostsModal({ open, onClose, onSaved }: CostsModalProps) {
           </button>
         </div>
         <p className="text-[13px] text-[#555] mb-5">
-          Defina os valores usados no cálculo do Faturamento Sob o Front
+          Defina o faturamento total usado no cálculo do Faturamento Sob o Front
         </p>
         <div className="border-t border-[#1a1a1a] mb-5" />
 
         <div className="space-y-4">
-          <Field label="Faturamento Total ($)" value={faturamento} onChange={setFaturamento} />
-          <Field label="Custo SMS ($)" value={custoSms} onChange={setCustoSms} />
-          <Field label="Custo Email ($)" value={custoEmail} onChange={setCustoEmail} />
+          <Field label="Faturamento Total (R$)" value={faturamento} onChange={setFaturamento} />
         </div>
 
         <button

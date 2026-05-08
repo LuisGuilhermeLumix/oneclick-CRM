@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Send,
   TrendingUp,
   Target,
   Receipt,
@@ -8,6 +7,8 @@ import {
   Wallet,
   BadgeDollarSign,
   ShoppingCart,
+  MessageCircle,
+  Send,
 } from "lucide-react";
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
@@ -21,7 +22,7 @@ import { formatCurrency, formatNumber, formatPercent } from "@/lib/format";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Lumix - Gabriel" },
+      { title: "Dashboard — Lumix - Oblivium Digital" },
       { name: "description", content: "Métricas de recuperação de vendas em tempo real." },
     ],
   }),
@@ -36,7 +37,7 @@ function DashboardPage() {
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
           <MetricCard
             label="Carrinhos Abandonados"
             icon={ShoppingCart}
@@ -47,23 +48,28 @@ function DashboardPage() {
             label="Disparos Feitos"
             icon={Send}
             loading={loading}
-            value={formatNumber(m.disparosFeitos.total)}
-            subInfo={`SMS: ${formatNumber(m.disparosFeitos.sms)} | Email: ${formatNumber(m.disparosFeitos.email)}`}
+            value={formatNumber(m.disparosFeitos)}
+          />
+          <MetricCard
+            label="Taxa de Resposta"
+            icon={MessageCircle}
+            variant="brand"
+            loading={loading}
+            value={formatPercent(m.taxaResposta, 1)}
           />
           <MetricCard
             label="Vendas Recuperadas"
             icon={TrendingUp}
-            variant="brand"
+            variant="success"
             loading={loading}
-            value={formatNumber(m.vendasRecuperadas.total)}
-            subInfo={`SMS: ${formatNumber(m.vendasRecuperadas.sms)} | Email: ${formatNumber(m.vendasRecuperadas.email)}`}
+            value={formatNumber(m.vendasRecuperadas)}
           />
           <MetricCard
             label="Taxa de Conversão"
             icon={Target}
+            variant="brand"
             loading={loading}
-            value={formatPercent(m.taxaConversao.total, 1)}
-            subInfo={`SMS: ${formatPercent(m.taxaConversao.sms, 1)} | Email: ${formatPercent(m.taxaConversao.email, 1)}`}
+            value={formatPercent(m.taxaConversao, 1)}
           />
         </div>
 
@@ -72,16 +78,14 @@ function DashboardPage() {
             label="Ticket Médio"
             icon={Receipt}
             loading={loading}
-            value={formatCurrency(m.ticketMedio.total)}
-            subInfo={`SMS: ${formatCurrency(m.ticketMedio.sms)} | Email: ${formatCurrency(m.ticketMedio.email)}`}
+            value={formatCurrency(m.ticketMedio)}
           />
           <MetricCard
             label="Valor Recuperado"
             icon={BadgeDollarSign}
-            variant="brand"
+            variant="success"
             loading={loading}
-            value={formatCurrency(m.receitaRecuperada.total)}
-            subInfo={`SMS: ${formatCurrency(m.receitaRecuperada.sms)} | Email: ${formatCurrency(m.receitaRecuperada.email)}`}
+            value={formatCurrency(m.valorRecuperado)}
           />
           <MetricCard
             label="Comissão Lumix"
@@ -89,14 +93,15 @@ function DashboardPage() {
             variant="brand2"
             loading={loading}
             value={formatCurrency(m.comissaoLumix)}
-            subInfo="25% sobre receita recuperada no período"
+            subInfo="10% sobre o valor recuperado"
           />
           <MetricCard
             label="Faturamento Sob o Front"
             icon={Wallet}
+            variant="brand2"
             loading={loading}
-            value={formatPercent(m.faturamentoSobFrontPct, 2)}
-            subInfo="Recuperado vs. faturamento do front orgânico"
+            value={formatPercent(m.faturamentoSobFrontPct, 1)}
+            subInfo="Recuperado vs. faturamento total"
             editable
             onEdit={() => setCostsOpen(true)}
           />

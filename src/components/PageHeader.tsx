@@ -19,18 +19,15 @@ export function PageHeader({ title, showFilters = true }: PageHeaderProps) {
   const {
     dateFrom,
     dateTo,
-    channel,
     product,
     activeRange,
     setDateFrom,
     setDateTo,
-    setChannel,
     setProduct,
     setRange,
   } = useFilters();
   const { products } = useProducts();
 
-  const [channelOpen, setChannelOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
   const [customFrom, setCustomFrom] = useState(dateFrom);
@@ -148,29 +145,6 @@ export function PageHeader({ title, showFilters = true }: PageHeaderProps) {
         )}
       </div>
 
-      <div className="relative">
-        <button
-          onClick={() => setChannelOpen((v) => !v)}
-          className="h-9 flex items-center gap-2 px-3.5 rounded-lg bg-[#111] border border-[#222] text-[#ccc] text-sm hover:border-[#2a2a2a] transition-colors"
-        >
-          <span className="text-[#666] text-xs">Canal:</span>
-          <span className="text-xs">{channel}</span>
-          <ChevronDown size={12} className="text-[#666]" />
-        </button>
-        {channelOpen && (
-          <div className="absolute right-0 mt-1.5 w-36 rounded-lg bg-[#0f0f0f] border border-[#1e1e1e] py-1 shadow-lg z-50">
-            {(["Todos", "SMS", "Email"] as const).map((c) => (
-              <button
-                key={c}
-                onClick={() => { setChannel(c); setChannelOpen(false); }}
-                className="w-full text-left px-3 py-1.5 text-sm text-[#ccc] hover:bg-[#161616] transition-colors"
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 

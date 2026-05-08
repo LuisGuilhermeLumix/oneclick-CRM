@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
-import { formatCurrency, formatDateLong } from "@/lib/format";
+import { formatCurrency, formatDateLong, formatNumber } from "@/lib/format";
 
 export function LeadsTable() {
-  const [tab, setTab] = useState<"Todos" | "SMS" | "Email">("Todos");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const { rows: pageData, totalPages, loading } = useLeads(tab, search, page);
+  const { rows: pageData, totalPages, loading } = useLeads(search, page);
 
   return (
     <div className="surface-panel p-6">
@@ -25,38 +24,17 @@ export function LeadsTable() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Buscar por email ou nome..."
+            placeholder="Buscar por email, nome ou telefone..."
             className="h-9 w-72 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] pl-9 pr-3 text-sm text-white placeholder-[#444] focus:border-[#80d7f8] transition-colors"
           />
         </div>
-      </div>
-
-      <div className="flex items-center gap-1 border-b border-[#141414] mb-1">
-        {(["Todos", "SMS", "Email"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => {
-              setTab(t);
-              setPage(1);
-            }}
-            className={[
-              "relative py-2 mr-5 text-sm transition-colors",
-              tab === t ? "text-white" : "text-[#555] hover:text-[#999]",
-            ].join(" ")}
-          >
-            {t}
-            {tab === t && (
-              <span className="absolute -bottom-px left-0 right-0 h-[2px] bg-[#80d7f8]" />
-            )}
-          </button>
-        ))}
       </div>
 
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#0a0a0a]">
-              {["Data", "Nome", "Email", "Produto", "Canal", "Valor Recuperado", "Status"].map((h) => (
+              {["Data", "Nome", "Telefone", "Email", "Produto", "Quantidade", "Canal", "Valor Recuperado"].map((h) => (
                 <th
                   key={h}
                   className="text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#555] px-4 py-3"
@@ -70,7 +48,7 @@ export function LeadsTable() {
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i} className="border-b border-[#0f0f0f]">
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <td key={j} className="px-4 py-3.5">
                       <div className="h-4 rounded animate-pulse bg-white/[0.04]" />
                     </td>
@@ -79,7 +57,7 @@ export function LeadsTable() {
               ))
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-16 text-center">
+                <td colSpan={8} className="py-16 text-center">
                   <Inbox size={48} className="mx-auto text-[#333] mb-3" />
                   <div className="text-sm text-[#444]">Nenhum lead encontrado</div>
                 </td>
@@ -111,18 +89,18 @@ export function LeadsTable() {
             <div key={lead.id} className="p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[13px] font-medium text-white truncate">{lead.name}</span>
-                <ChannelBadge channel={lead.channel} />
+                <ChannelBadge />
               </div>
-              <div className="text-xs text-[#888] font-mono truncate">{lead.email}</div>
-              <div className="text-xs text-[#666]">{lead.product}</div>
+              <div className="text-xs text-[#888] font-mono truncate">{lead.number}</div>
+              <div className="text-xs text-[#888] truncate">{lead.email}</div>
+              <div className="text-xs text-[#666]">
+                {lead.product} · {formatNumber(lead.amount)} Frascos
+              </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[11px] text-[#555]">{formatDateLong(lead.date)}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-white">
-                    {formatCurrency(lead.recoveredValue)}
-                  </span>
-                  <StatusBadge status={lead.status} />
-                </div>
+                <span className="text-[13px] font-semibold text-white">
+                  {formatCurrency(lead.recoveredValue)}
+                </span>
               </div>
             </div>
           ))
@@ -157,50 +135,27 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
         {formatDateLong(lead.date)}
       </td>
       <td className="px-4 py-3.5 text-[#ddd]">{lead.name}</td>
+      <td className="px-4 py-3.5 text-[#aaa] font-mono text-xs">{lead.number}</td>
       <td className="px-4 py-3.5 text-[#ddd]">{lead.email}</td>
       <td className="px-4 py-3.5 text-[#aaa]">{lead.product}</td>
+      <td className="px-4 py-3.5 text-[#aaa]">{formatNumber(lead.amount)} Frascos</td>
       <td className="px-4 py-3.5">
-        <ChannelBadge channel={lead.channel} />
+        <ChannelBadge />
       </td>
       <td className="px-4 py-3.5 text-white font-medium">
-        {lead.status === "Recuperado" ? formatCurrency(lead.recoveredValue) : "—"}
-      </td>
-      <td className="px-4 py-3.5">
-        <StatusBadge status={lead.status} />
+        {formatCurrency(lead.recoveredValue)}
       </td>
     </tr>
   );
 }
 
-export function ChannelBadge({ channel }: { channel: "SMS" | "Email" }) {
-  const map = {
-    SMS: { bg: "rgba(128,215,248,0.10)", color: "#80d7f8" },
-    Email: { bg: "rgba(230,95,245,0.10)", color: "#e65ff5" },
-  } as const;
-  const s = map[channel];
+export function ChannelBadge() {
   return (
     <span
       className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
-      style={{ backgroundColor: s.bg, color: s.color }}
+      style={{ backgroundColor: "rgba(34,197,94,0.10)", color: "#22c55e" }}
     >
-      {channel}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: LeadRow["status"] }) {
-  const map = {
-    Recuperado: { bg: "rgba(34,197,94,0.10)", color: "#22c55e" },
-    Disparado: { bg: "rgba(245,158,11,0.10)", color: "#f59e0b" },
-    Pendente: { bg: "rgba(100,100,100,0.10)", color: "#888" },
-  } as const;
-  const s = map[status];
-  return (
-    <span
-      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
-      style={{ backgroundColor: s.bg, color: s.color }}
-    >
-      {status}
+      WPP
     </span>
   );
 }
