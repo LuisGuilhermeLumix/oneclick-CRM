@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
+import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
 
 const TABLE = 'obliviumdigital_nutra_br_CRM'
 
@@ -38,8 +39,8 @@ export function useLeads(search: string, page: number) {
     async function load() {
       setLoading(true)
       try {
-        const from = `${dateFrom}T00:00:00.000Z`
-        const to = `${dateTo}T23:59:59.999Z`
+        const from = startOfDayUTC(dateFrom)
+        const to = endOfDayUTC(dateTo)
 
         let q = supabase
           .from(TABLE)

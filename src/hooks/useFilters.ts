@@ -1,51 +1,48 @@
 import { create } from 'zustand'
+import { todayStr, daysAgoStr, firstOfMonthStr } from '@/lib/dates'
 
-export type RangeKey = 'hoje' | '7d' | 'mes' | '90d' | 'custom'
-
-function toDateStr(date: Date): string {
-  return date.toISOString().split('T')[0]
-}
-
-const today = new Date()
-const defaultFrom = new Date(today.getFullYear(), today.getMonth(), 1)
+export type RangeKey = 'hoje' | 'ontem' | '7d' | 'mes' | 'custom'
 
 interface FiltersState {
   dateFrom: string
   dateTo: string
   product: string
   activeRange: RangeKey
-  setDateFrom: (v: string) => void
-  setDateTo: (v: string) => void
   setProduct: (v: string) => void
-  setRange: (key: 'hoje' | '7d' | 'mes' | '90d') => void
+  setRange: (key: Exclude<RangeKey, 'custom'>) => void
+  applyCustom: (from: string, to: string) => void
 }
 
 export const useFilters = create<FiltersState>((set) => ({
-  dateFrom: toDateStr(defaultFrom),
-  dateTo: toDateStr(today),
+  dateFrom: firstOfMonthStr(),
+  dateTo: todayStr(),
   product: 'Todos',
   activeRange: 'mes',
-  setDateFrom: (v) => set({ dateFrom: v, activeRange: 'custom' }),
-  setDateTo: (v) => set({ dateTo: v, activeRange: 'custom' }),
+
   setProduct: (v) => set({ product: v }),
+
+  applyCustom: (from, to) =>
+    set({
+      dateFrom: from,
+      dateTo: to,
+      activeRange: 'custom',
+    }),
+
   setRange: (key) => {
-    const to = new Date()
-    const from = new Date()
+    let from: string
+    let to: string = todayStr()
 
     if (key === 'hoje') {
-      // from e to = hoje
+      from = todayStr()
+    } else if (key === 'ontem') {
+      from = daysAgoStr(1)
+      to = daysAgoStr(1)
     } else if (key === '7d') {
-      from.setDate(to.getDate() - 7)
-    } else if (key === 'mes') {
-      from.setDate(1)
-    } else if (key === '90d') {
-      from.setDate(to.getDate() - 90)
+      from = daysAgoStr(6)
+    } else {
+      from = firstOfMonthStr()
     }
 
-    set({
-      dateFrom: toDateStr(from),
-      dateTo: toDateStr(to),
-      activeRange: key,
-    })
+    set({ dateFrom: from, dateTo: to, activeRange: key })
   },
 }))

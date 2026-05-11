@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
+import { startOfDayUTC, endOfDayUTC, utcToLocalDateStr, getDaysInRange } from '@/lib/dates'
 
 const TABLE = 'obliviumdigital_nutra_br_CRM'
 
@@ -33,8 +34,8 @@ export function useChartData() {
         let q = supabase
           .from(TABLE)
           .select('created_at, "($)"')
-          .gte('created_at', `${dateFrom}T00:00:00.000Z`)
-          .lte('created_at', `${dateTo}T23:59:59.999Z`)
+          .gte('created_at', startOfDayUTC(dateFrom))
+          .lte('created_at', endOfDayUTC(dateTo))
           .eq('Event', 'order_paid')
           .eq('utm_source', 'WPP')
 
@@ -44,8 +45,11 @@ export function useChartData() {
         if (error) throw error
 
         const map: Record<string, { sales: number; value: number }> = {}
+        for (const day of getDaysInRange(dateFrom, dateTo)) {
+          map[day] = { sales: 0, value: 0 }
+        }
         ;((rows ?? []) as any[]).forEach((r) => {
-          const day = String(r.created_at).slice(0, 10)
+          const day = utcToLocalDateStr(r.created_at)
           if (!map[day]) map[day] = { sales: 0, value: 0 }
           map[day].sales++
           map[day].value += parseNum(r['($)'])
