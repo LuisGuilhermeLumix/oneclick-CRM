@@ -1,6 +1,12 @@
 import { LucideIcon, Pencil } from "lucide-react";
 import { ReactNode } from "react";
 
+export interface BreakdownItem {
+  label: string;
+  value: ReactNode;
+  color: string;
+}
+
 interface MetricCardProps {
   label: string;
   value: ReactNode;
@@ -10,6 +16,7 @@ interface MetricCardProps {
   variant?: "default" | "brand" | "brand2" | "success";
   editable?: boolean;
   onEdit?: () => void;
+  breakdown?: BreakdownItem[];
 }
 
 export function MetricCard({
@@ -21,6 +28,7 @@ export function MetricCard({
   variant = "default",
   editable,
   onEdit,
+  breakdown,
 }: MetricCardProps) {
   const valueClass =
     variant === "brand"
@@ -85,6 +93,24 @@ export function MetricCard({
             {value}
           </div>
           {subInfo && <div className="mt-2 text-xs text-[#555]">{subInfo}</div>}
+          {breakdown && breakdown.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-[#1a1a1a] space-y-1.5">
+              {breakdown.map((item, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-1.5 text-[#888] truncate">
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0"
+                      style={{ background: item.color }}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </span>
+                  <span className="text-[#ccc] font-medium tabular-nums flex-shrink-0 ml-2">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

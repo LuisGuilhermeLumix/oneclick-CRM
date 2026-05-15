@@ -2,12 +2,16 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
 import { formatCurrency, formatDateLong } from "@/lib/format";
+import { EVENT_COLORS, EVENT_LABELS } from "@/lib/events";
 
 export function LeadsTable() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
   const { rows: pageData, totalPages, loading } = useLeads(search, page);
+
+  const headers = ["Data", "Nome", "Telefone", "Email", "Produto", "Evento", "Canal", "Valor Recuperado"];
+  const colCount = headers.length;
 
   return (
     <div className="surface-panel p-6">
@@ -34,7 +38,7 @@ export function LeadsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#0a0a0a]">
-              {["Data", "Nome", "Telefone", "Email", "Produto", "Canal", "Valor Recuperado"].map((h) => (
+              {headers.map((h) => (
                 <th
                   key={h}
                   className="text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#555] px-4 py-3"
@@ -48,7 +52,7 @@ export function LeadsTable() {
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i} className="border-b border-[#0f0f0f]">
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: colCount }).map((_, j) => (
                     <td key={j} className="px-4 py-3.5">
                       <div className="h-4 rounded animate-pulse bg-white/[0.04]" />
                     </td>
@@ -57,7 +61,7 @@ export function LeadsTable() {
               ))
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-16 text-center">
+                <td colSpan={colCount} className="py-16 text-center">
                   <Inbox size={48} className="mx-auto text-[#333] mb-3" />
                   <div className="text-sm text-[#444]">Nenhum lead encontrado</div>
                 </td>
@@ -89,15 +93,18 @@ export function LeadsTable() {
             <div key={lead.id} className="p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[13px] font-medium text-white truncate">{lead.name}</span>
-                <ChannelBadge />
+                <ChannelBadge utm_source={lead.utm_source} event={lead.event} />
               </div>
               <div className="text-xs text-[#888] font-mono truncate">{lead.number}</div>
               <div className="text-xs text-[#888] truncate">{lead.email}</div>
-              <div className="text-xs text-[#666]">{lead.product}</div>
+              <div className="text-xs text-[#666] flex items-center gap-2">
+                <span className="truncate">{lead.product}</span>
+                <EventBadge event={lead.event} />
+              </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[11px] text-[#555]">{formatDateLong(lead.date)}</span>
                 <span className="text-[13px] font-semibold text-white">
-                  {formatCurrency(lead.recoveredValue)}
+                  {lead.event === "order_paid" ? formatCurrency(lead.recoveredValue) : "—"}
                 </span>
               </div>
             </div>
@@ -137,24 +144,63 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
       <td className="px-4 py-3.5 text-[#ddd]">{lead.email}</td>
       <td className="px-4 py-3.5 text-[#aaa]">{lead.product}</td>
       <td className="px-4 py-3.5">
-        <ChannelBadge />
+        <EventBadge event={lead.event} />
+      </td>
+      <td className="px-4 py-3.5">
+        <ChannelBadge utm_source={lead.utm_source} event={lead.event} />
       </td>
       <td className="px-4 py-3.5 text-white font-medium">
-        {formatCurrency(lead.recoveredValue)}
+        {lead.event === "order_paid" ? formatCurrency(lead.recoveredValue) : "—"}
       </td>
     </tr>
   );
 }
 
-export function ChannelBadge() {
+export function EventBadge({ event }: { event: string }) {
+  const color = EVENT_COLORS[event] ?? "#6b7280";
+  const label = EVENT_LABELS[event] ?? event ?? "—";
+  return (
+    <span
+      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap"
+      style={{ backgroundColor: hexWithAlpha(color, 0.12), color }}
+    >
+      {label}
+    </span>
+  );
+}
+
+export function ChannelBadge({
+  utm_source,
+  event,
+}: {
+  utm_source: string;
+  event: string;
+}) {
+  if (event !== "order_paid") {
+    return <span className="text-[11px] text-[#555]">—</span>;
+  }
+  const isWpp = utm_source === "WPP";
   return (
     <span
       className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
-      style={{ backgroundColor: "rgba(34,197,94,0.10)", color: "#22c55e" }}
+      style={{
+        backgroundColor: isWpp ? "rgba(34,197,94,0.10)" : "rgba(156,163,175,0.10)",
+        color: isWpp ? "#22c55e" : "#9ca3af",
+      }}
     >
-      WPP
+      {isWpp ? "WPP" : "Front"}
     </span>
   );
+}
+
+function hexWithAlpha(hex: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function PageBtn({

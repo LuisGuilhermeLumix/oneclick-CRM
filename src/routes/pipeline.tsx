@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { AppLayout } from "@/components/AppLayout";
+import { EVENT_COLORS, EVENT_LABELS, LEAD_EVENTS } from "@/lib/events";
 
 export const Route = createFileRoute("/pipeline")({
   head: () => ({
@@ -21,6 +22,7 @@ interface PipelineLead {
   number: string | null;
   product: string | null;
   status: string | null;
+  Event: string | null;
   created_at: string;
 }
 
@@ -75,8 +77,8 @@ function PipelinePage() {
       setLoading(true);
       const { data, error } = await supabase
         .from(TABLE)
-        .select("id, name, number, product, status, created_at")
-        .eq("event", "abandoned_cart")
+        .select('id, name, number, product, status, "Event", created_at')
+        .in("Event", LEAD_EVENTS as unknown as string[])
         .not("status", "is", null)
         .neq("status", "")
         .order("created_at", { ascending: false });
@@ -100,7 +102,7 @@ function PipelinePage() {
         { event: "*", schema: "public", table: TABLE },
         (payload) => {
           const row = (payload.new ?? payload.old) as any;
-          if (!row || row.event !== "abandoned_cart") return;
+          if (!row || !(LEAD_EVENTS as readonly string[]).includes(row.Event)) return;
 
           setLeads((prev) => {
             if (payload.eventType === "DELETE") {
@@ -114,6 +116,7 @@ function PipelinePage() {
               number: row.number ?? null,
               product: row.product ?? null,
               status: row.status,
+              Event: row.Event ?? null,
               created_at: row.created_at,
             };
             next.unshift(updated);
@@ -183,6 +186,9 @@ function PipelinePage() {
 }
 
 function LeadCard({ lead }: { lead: PipelineLead }) {
+  const eventKey = lead.Event ?? "";
+  const eventColor = EVENT_COLORS[eventKey];
+  const eventLabel = EVENT_LABELS[eventKey];
   return (
     <div className="rounded-lg bg-[#101010] border border-[#1a1a1a] p-3 hover:border-[#2a2a2a] transition-colors">
       <div className="text-sm font-semibold text-white truncate">
@@ -191,19 +197,37 @@ function LeadCard({ lead }: { lead: PipelineLead }) {
       <div className="text-xs text-[#888] font-mono mt-0.5 truncate">
         {lead.number || "—"}
       </div>
-      {lead.product && (
-        <div className="mt-2">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {lead.product && (
           <span
             className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium truncate max-w-full"
             style={(() => {
-              const c = getProductColor(lead.product);
+              const c = getProductColor(lead.product!);
               return { backgroundColor: c.bg, color: c.text };
             })()}
           >
             {lead.product}
           </span>
-        </div>
-      )}
+        )}
+        {eventColor && eventLabel && (
+          <span
+            className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+            style={{ backgroundColor: hexWithAlpha(eventColor, 0.12), color: eventColor }}
+          >
+            {eventLabel}
+          </span>
+        )}
+      </div>
     </div>
   );
+}
+
+function hexWithAlpha(hex: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
 }

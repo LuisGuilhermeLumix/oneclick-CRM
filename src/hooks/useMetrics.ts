@@ -3,53 +3,56 @@ import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
 import {
-  calcAbandonedCarts,
-  calcDisparosFeitos,
-  calcResponseRate,
-  calcRecoveredSales,
-  calcConversionRate,
-  calcTicketMedio,
-  calcValorRecuperado,
-  calcComissaoLumix,
-  calcFaturamentoFront,
   CRMRow,
+  EventBreakdown,
+  ChannelSplit,
+  ChannelMoney,
+  calcLeadsBreakdown,
+  calcLeadsTotal,
+  calcResponseRateTotal,
+  calcResponseRateBreakdown,
+  calcOrderPaidCount,
+  calcOrderPaidByChannel,
+  calcConversionRateTotal,
+  calcConversionRateBreakdown,
+  calcTicketMedio,
+  calcTicketMedioByChannel,
+  calcValorRecuperadoTotal,
+  calcValorRecuperadoByChannel,
 } from '@/lib/metrics'
 
 const TABLE = 'oneclick_info_br_CRM'
 
-function parseNum(val: any): number {
-  if (val === null || val === undefined || val === '') return 0
-  if (typeof val === 'number') return isNaN(val) ? 0 : val
-  let s = String(val).replace(/[^0-9.,\-]/g, '')
-  if (s.includes(',')) {
-    s = s.replace(/\./g, '').replace(',', '.')
-  }
-  const n = parseFloat(s)
-  return isNaN(n) ? 0 : n
-}
-
 export interface DashboardMetrics {
-  carrinhosAbandonados: number
-  disparosFeitos: number
-  taxaResposta: number
-  vendasRecuperadas: number
-  taxaConversao: number
-  ticketMedio: number
-  valorRecuperado: number
-  comissaoLumix: number
-  faturamentoSobFrontPct: number
+  leadsTotal: number
+  leadsBreakdown: EventBreakdown
+  taxaRespostaTotal: number
+  taxaRespostaBreakdown: EventBreakdown
+  vendasRecuperadasTotal: number
+  vendasRecuperadasChannel: ChannelSplit
+  taxaConversaoTotal: number
+  taxaConversaoBreakdown: EventBreakdown
+  ticketMedioTotal: number
+  ticketMedioChannel: ChannelMoney
+  valorRecuperadoTotal: number
+  valorRecuperadoChannel: ChannelMoney
+  faturamentoFrontPct: number
 }
 
 const zero: DashboardMetrics = {
-  carrinhosAbandonados: 0,
-  disparosFeitos: 0,
-  taxaResposta: 0,
-  vendasRecuperadas: 0,
-  taxaConversao: 0,
-  ticketMedio: 0,
-  valorRecuperado: 0,
-  comissaoLumix: 0,
-  faturamentoSobFrontPct: 0,
+  leadsTotal: 0,
+  leadsBreakdown: { abandoned_cart: 0, generated_pix: 0, refused_card: 0 },
+  taxaRespostaTotal: 0,
+  taxaRespostaBreakdown: { abandoned_cart: 0, generated_pix: 0, refused_card: 0 },
+  vendasRecuperadasTotal: 0,
+  vendasRecuperadasChannel: { wpp: 0, front: 0 },
+  taxaConversaoTotal: 0,
+  taxaConversaoBreakdown: { abandoned_cart: 0, generated_pix: 0, refused_card: 0 },
+  ticketMedioTotal: 0,
+  ticketMedioChannel: { wpp: 0, front: 0 },
+  valorRecuperadoTotal: 0,
+  valorRecuperadoChannel: { wpp: 0, front: 0 },
+  faturamentoFrontPct: 0,
 }
 
 export function useMetrics() {
@@ -72,47 +75,47 @@ export function useMetrics() {
 
         let q = supabase
           .from(TABLE)
-          .select('event, utm_source, status, "($)"')
+          .select('"Event", utm_source, status, "($)"')
           .gte('created_at', from)
           .lte('created_at', to)
         if (productFilter) q = q.eq('product', productFilter)
 
-        const cfgPromise = supabase
-          .from('crm_config')
-          .select('total_revenue_usd')
-          .eq('id', 1)
-          .maybeSingle()
-
-        const [rowsRes, cfgRes] = await Promise.all([q, cfgPromise])
-
-        if ((rowsRes as any).error) throw (rowsRes as any).error
+        const { data, error } = await q
+        if (error) throw error
         if (cancelled) return
 
-        const rows = ((rowsRes as any).data ?? []) as CRMRow[]
+        const rows = (data ?? []) as CRMRow[]
 
-        const carrinhosAbandonados = calcAbandonedCarts(rows)
-        const disparosFeitos = calcDisparosFeitos(rows)
-        const taxaResposta = calcResponseRate(rows)
-        const vendasRecuperadas = calcRecoveredSales(rows)
-        const taxaConversao = calcConversionRate(vendasRecuperadas, carrinhosAbandonados)
-        const ticketMedio = calcTicketMedio(rows)
-        const valorRecuperado = calcValorRecuperado(rows)
-        const comissaoLumix = calcComissaoLumix(valorRecuperado)
-
-        const cfg = (cfgRes as any).data
-        const faturamentoTotal = parseNum(cfg?.total_revenue_usd)
-        const faturamentoSobFrontPct = calcFaturamentoFront(valorRecuperado, faturamentoTotal)
+        const leadsBreakdown = calcLeadsBreakdown(rows)
+        const leadsTotal = calcLeadsTotal(leadsBreakdown)
+        const taxaRespostaTotal = calcResponseRateTotal(rows)
+        const taxaRespostaBreakdown = calcResponseRateBreakdown(rows)
+        const vendasRecuperadasTotal = calcOrderPaidCount(rows)
+        const vendasRecuperadasChannel = calcOrderPaidByChannel(rows)
+        const taxaConversaoTotal = calcConversionRateTotal(vendasRecuperadasTotal, leadsTotal)
+        const taxaConversaoBreakdown = calcConversionRateBreakdown(vendasRecuperadasTotal, leadsBreakdown)
+        const ticketMedioTotal = calcTicketMedio(rows)
+        const ticketMedioChannel = calcTicketMedioByChannel(rows)
+        const valorRecuperadoTotal = calcValorRecuperadoTotal(rows)
+        const valorRecuperadoChannel = calcValorRecuperadoByChannel(rows)
+        const faturamentoFrontPct = valorRecuperadoTotal
+          ? (valorRecuperadoChannel.wpp / valorRecuperadoTotal) * 100
+          : 0
 
         setMetrics({
-          carrinhosAbandonados,
-          disparosFeitos,
-          taxaResposta,
-          vendasRecuperadas,
-          taxaConversao,
-          ticketMedio,
-          valorRecuperado,
-          comissaoLumix,
-          faturamentoSobFrontPct,
+          leadsTotal,
+          leadsBreakdown,
+          taxaRespostaTotal,
+          taxaRespostaBreakdown,
+          vendasRecuperadasTotal,
+          vendasRecuperadasChannel,
+          taxaConversaoTotal,
+          taxaConversaoBreakdown,
+          ticketMedioTotal,
+          ticketMedioChannel,
+          valorRecuperadoTotal,
+          valorRecuperadoChannel,
+          faturamentoFrontPct,
         })
       } catch (e: any) {
         if (!cancelled) setError(e.message ?? 'Erro ao buscar dados')

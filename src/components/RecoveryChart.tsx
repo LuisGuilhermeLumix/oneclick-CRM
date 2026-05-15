@@ -1,37 +1,43 @@
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { useChartData } from "@/hooks/useChartData";
-import { formatDateShort, formatDateLong, formatCurrency } from "@/lib/format";
+import { formatDateShort, formatDateLong } from "@/lib/format";
+import { EVENT_COLORS, EVENT_LABELS } from "@/lib/events";
+
+const SERIES = [
+  { key: "abandoned_cart" as const, label: EVENT_LABELS.abandoned_cart, color: EVENT_COLORS.abandoned_cart },
+  { key: "generated_pix" as const,  label: EVENT_LABELS.generated_pix,  color: EVENT_COLORS.generated_pix },
+  { key: "refused_card" as const,   label: EVENT_LABELS.refused_card,   color: EVENT_COLORS.refused_card },
+  { key: "order_paid" as const,     label: EVENT_LABELS.order_paid,     color: EVENT_COLORS.order_paid },
+];
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
-
-  const salesEntry = payload.find((p: any) => p.dataKey === "sales");
-  const data = payload[0]?.payload;
-  const value = data?.value ?? 0;
-
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[160px]">
+    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[200px]">
       <p className="mb-2.5 text-[#666] font-medium">{formatDateLong(label)}</p>
-
-      {salesEntry && (
-        <div>
-          <div className="flex items-center justify-between gap-4">
-            <span style={{ color: "#22c55e" }}>● WPP</span>
-            <span className="text-white font-semibold">{salesEntry.value} vendas</span>
-          </div>
-          <div className="flex justify-end">
-            <span className="text-[#22c55e] font-medium">{formatCurrency(value)}</span>
-          </div>
-        </div>
-      )}
+      <div className="space-y-1">
+        {SERIES.map((s) => {
+          const entry = payload.find((p: any) => p.dataKey === s.key);
+          const v = entry ? entry.value : 0;
+          return (
+            <div key={s.key} className="flex items-center justify-between gap-4">
+              <span style={{ color: s.color }} className="flex items-center gap-1.5">
+                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
+                {s.label}
+              </span>
+              <span className="text-white font-semibold tabular-nums">{v}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -51,32 +57,28 @@ export function RecoveryChart() {
 
   return (
     <div className="surface-panel p-6">
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
         <div>
           <h2 className="text-sm font-semibold text-white">
             Recuperações ao longo do tempo
           </h2>
           <p className="text-xs text-[#555] mt-1">
-            Vendas recuperadas via WhatsApp por dia
+            Eventos por dia
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <LegendDot color="#22c55e" label="WPP" />
+        <div className="flex items-center gap-4 flex-wrap">
+          {SERIES.map((s) => (
+            <LegendDot key={s.key} color={s.color} label={s.label} />
+          ))}
         </div>
       </div>
 
-      <div style={{ width: "100%", height: typeof window !== "undefined" && window.innerWidth < 768 ? 160 : 220 }}>
+      <div style={{ width: "100%", height: typeof window !== "undefined" && window.innerWidth < 768 ? 180 : 260 }}>
         <ResponsiveContainer>
-          <AreaChart
+          <LineChart
             data={data}
             margin={{ top: 5, right: 8, left: -20, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="wppFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <CartesianGrid
               vertical={false}
               stroke="#1a1a1a"
@@ -95,20 +97,24 @@ export function RecoveryChart() {
               fontSize={11}
               tickLine={false}
               axisLine={false}
+              allowDecimals={false}
             />
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ stroke: "#2a2a2a", strokeWidth: 1 }}
             />
-            <Area
-              type="monotone"
-              dataKey="sales"
-              stroke="#22c55e"
-              strokeWidth={2}
-              fill="url(#wppFill)"
-              activeDot={{ r: 4, strokeWidth: 0 }}
-            />
-          </AreaChart>
+            {SERIES.map((s) => (
+              <Line
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                stroke={s.color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 0 }}
+              />
+            ))}
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
