@@ -5,8 +5,6 @@ import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
 
 const TABLE = 'oneclick_info_br_CRM'
 
-const TRACKED_EVENTS = ['abandoned_cart', 'generated_pix', 'refused_card', 'order_paid'] as const
-
 export interface LeadRow {
   id: string
   date: string
@@ -14,7 +12,6 @@ export interface LeadRow {
   number: string
   email: string
   product: string
-  event: string
   utm_source: string
   recoveredValue: number
 }
@@ -47,10 +44,11 @@ export function useLeads(search: string, page: number) {
 
         let q = supabase
           .from(TABLE)
-          .select('id, created_at, name, number, email, product, "Event", utm_source, "($)"')
+          .select('id, created_at, name, number, email, product, utm_source, "($)"')
           .gte('created_at', from)
           .lte('created_at', to)
-          .in('Event', TRACKED_EVENTS as unknown as string[])
+          .eq('Event', 'order_paid')
+          .like('utm_source', '%WPP%')
           .order('created_at', { ascending: false })
           .limit(200)
 
@@ -76,7 +74,6 @@ export function useLeads(search: string, page: number) {
             number: r.number ?? '—',
             email: r.email ?? '—',
             product: r.product ?? '—',
-            event: r.Event ?? '',
             utm_source: r.utm_source ?? '',
             recoveredValue: parseNum(r['($)']),
           }))

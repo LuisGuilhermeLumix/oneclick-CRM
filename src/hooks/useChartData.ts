@@ -2,18 +2,15 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC, utcToLocalDateStr, getDaysInRange } from '@/lib/dates'
+import { getLeadOrigin } from '@/lib/events'
 
 const TABLE = 'oneclick_info_br_CRM'
 
-const TRACKED_EVENTS = ['abandoned_cart', 'generated_pix', 'refused_card', 'order_paid'] as const
-type TrackedEvent = (typeof TRACKED_EVENTS)[number]
-
 export interface ChartPoint {
   date: string
-  abandoned_cart: number
-  generated_pix: number
-  refused_card: number
-  order_paid: number
+  AC: number
+  GP: number
+  RC: number
 }
 
 export function useChartData() {
@@ -27,10 +24,11 @@ export function useChartData() {
       try {
         let q = supabase
           .from(TABLE)
-          .select('created_at, "Event"')
+          .select('created_at, utm_source')
           .gte('created_at', startOfDayUTC(dateFrom))
           .lte('created_at', endOfDayUTC(dateTo))
-          .in('Event', TRACKED_EVENTS as unknown as string[])
+          .eq('Event', 'order_paid')
+          .like('utm_source', '%WPP%')
 
         if (product && product !== 'Todos') q = q.eq('product', product)
 
@@ -39,15 +37,14 @@ export function useChartData() {
 
         const map: Record<string, ChartPoint> = {}
         for (const day of getDaysInRange(dateFrom, dateTo)) {
-          map[day] = { date: day, abandoned_cart: 0, generated_pix: 0, refused_card: 0, order_paid: 0 }
+          map[day] = { date: day, AC: 0, GP: 0, RC: 0 }
         }
-        ;((rows ?? []) as Array<{ created_at: string; Event: TrackedEvent }>).forEach((r) => {
+        ;((rows ?? []) as Array<{ created_at: string; utm_source: string | null }>).forEach((r) => {
           const day = utcToLocalDateStr(r.created_at)
-          if (!map[day]) {
-            map[day] = { date: day, abandoned_cart: 0, generated_pix: 0, refused_card: 0, order_paid: 0 }
-          }
-          if (r.Event && (TRACKED_EVENTS as readonly string[]).includes(r.Event)) {
-            map[day][r.Event]++
+          if (!map[day]) map[day] = { date: day, AC: 0, GP: 0, RC: 0 }
+          const origin = getLeadOrigin(r.utm_source)
+          if (origin === 'AC' || origin === 'GP' || origin === 'RC') {
+            map[day][origin]++
           }
         })
 

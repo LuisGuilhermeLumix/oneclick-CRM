@@ -9,13 +9,12 @@ import {
 } from "recharts";
 import { useChartData } from "@/hooks/useChartData";
 import { formatDateShort, formatDateLong } from "@/lib/format";
-import { EVENT_COLORS, EVENT_LABELS } from "@/lib/events";
+import { ORIGIN_COLORS, ORIGIN_LABELS } from "@/lib/events";
 
 const SERIES = [
-  { key: "abandoned_cart" as const, label: EVENT_LABELS.abandoned_cart, color: EVENT_COLORS.abandoned_cart },
-  { key: "generated_pix" as const,  label: EVENT_LABELS.generated_pix,  color: EVENT_COLORS.generated_pix },
-  { key: "refused_card" as const,   label: EVENT_LABELS.refused_card,   color: EVENT_COLORS.refused_card },
-  { key: "order_paid" as const,     label: EVENT_LABELS.order_paid,     color: EVENT_COLORS.order_paid },
+  { key: "AC" as const, label: ORIGIN_LABELS.AC, color: ORIGIN_COLORS.AC },
+  { key: "GP" as const, label: ORIGIN_LABELS.GP, color: ORIGIN_COLORS.GP },
+  { key: "RC" as const, label: ORIGIN_LABELS.RC, color: ORIGIN_COLORS.RC },
 ];
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -63,7 +62,7 @@ export function RecoveryChart() {
             Recuperações ao longo do tempo
           </h2>
           <p className="text-xs text-[#555] mt-1">
-            Eventos por dia
+            Vendas recuperadas via WhatsApp por origem do lead
           </p>
         </div>
         <div className="flex items-center gap-4 flex-wrap">

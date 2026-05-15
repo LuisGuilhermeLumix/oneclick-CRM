@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
 import { formatCurrency, formatDateLong } from "@/lib/format";
-import { EVENT_COLORS, EVENT_LABELS } from "@/lib/events";
+import { ORIGIN_COLORS, ORIGIN_LABELS, getLeadOrigin } from "@/lib/events";
 
 export function LeadsTable() {
   const [search, setSearch] = useState("");
@@ -10,7 +10,7 @@ export function LeadsTable() {
 
   const { rows: pageData, totalPages, loading } = useLeads(search, page);
 
-  const headers = ["Data", "Nome", "Telefone", "Email", "Produto", "Evento", "Canal", "Valor Recuperado"];
+  const headers = ["Data", "Nome", "Telefone", "Email", "Produto", "Canal", "Valor"];
   const colCount = headers.length;
 
   return (
@@ -93,18 +93,15 @@ export function LeadsTable() {
             <div key={lead.id} className="p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[13px] font-medium text-white truncate">{lead.name}</span>
-                <ChannelBadge utm_source={lead.utm_source} event={lead.event} />
+                <OriginBadge utm_source={lead.utm_source} />
               </div>
               <div className="text-xs text-[#888] font-mono truncate">{lead.number}</div>
               <div className="text-xs text-[#888] truncate">{lead.email}</div>
-              <div className="text-xs text-[#666] flex items-center gap-2">
-                <span className="truncate">{lead.product}</span>
-                <EventBadge event={lead.event} />
-              </div>
+              <div className="text-xs text-[#666] truncate">{lead.product}</div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[11px] text-[#555]">{formatDateLong(lead.date)}</span>
                 <span className="text-[13px] font-semibold text-white">
-                  {lead.event === "order_paid" ? formatCurrency(lead.recoveredValue) : "—"}
+                  {formatCurrency(lead.recoveredValue)}
                 </span>
               </div>
             </div>
@@ -144,51 +141,28 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
       <td className="px-4 py-3.5 text-[#ddd]">{lead.email}</td>
       <td className="px-4 py-3.5 text-[#aaa]">{lead.product}</td>
       <td className="px-4 py-3.5">
-        <EventBadge event={lead.event} />
-      </td>
-      <td className="px-4 py-3.5">
-        <ChannelBadge utm_source={lead.utm_source} event={lead.event} />
+        <OriginBadge utm_source={lead.utm_source} />
       </td>
       <td className="px-4 py-3.5 text-white font-medium">
-        {lead.event === "order_paid" ? formatCurrency(lead.recoveredValue) : "—"}
+        {formatCurrency(lead.recoveredValue)}
       </td>
     </tr>
   );
 }
 
-export function EventBadge({ event }: { event: string }) {
-  const color = EVENT_COLORS[event] ?? "#6b7280";
-  const label = EVENT_LABELS[event] ?? event ?? "—";
+export function OriginBadge({ utm_source }: { utm_source: string }) {
+  const origin = getLeadOrigin(utm_source);
+  if (!origin) {
+    return <span className="text-[11px] text-[#555]">—</span>;
+  }
+  const color = ORIGIN_COLORS[origin];
+  const label = ORIGIN_LABELS[origin];
   return (
     <span
       className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap"
       style={{ backgroundColor: hexWithAlpha(color, 0.12), color }}
     >
       {label}
-    </span>
-  );
-}
-
-export function ChannelBadge({
-  utm_source,
-  event,
-}: {
-  utm_source: string;
-  event: string;
-}) {
-  if (event !== "order_paid") {
-    return <span className="text-[11px] text-[#555]">—</span>;
-  }
-  const isWpp = utm_source === "WPP";
-  return (
-    <span
-      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
-      style={{
-        backgroundColor: isWpp ? "rgba(34,197,94,0.10)" : "rgba(156,163,175,0.10)",
-        color: isWpp ? "#22c55e" : "#9ca3af",
-      }}
-    >
-      {isWpp ? "WPP" : "Front"}
     </span>
   );
 }

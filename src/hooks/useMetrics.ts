@@ -5,20 +5,20 @@ import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
 import {
   CRMRow,
   EventBreakdown,
-  ChannelSplit,
-  ChannelMoney,
+  OriginBreakdown,
+  ResponseRate,
+  WppCount,
+  WppMoney,
+  ConversionRate,
   calcLeadsBreakdown,
   calcLeadsTotal,
-  calcResponseRateTotal,
-  calcResponseRateBreakdown,
-  calcOrderPaidCount,
-  calcOrderPaidByChannel,
-  calcConversionRateTotal,
-  calcConversionRateBreakdown,
-  calcTicketMedio,
-  calcTicketMedioByChannel,
-  calcValorRecuperadoTotal,
-  calcValorRecuperadoByChannel,
+  calcResponseRate,
+  calcVendasWpp,
+  calcConversionRate,
+  calcTicketMedioWpp,
+  calcValorRecuperadoWpp,
+  calcSomaTotalOrderPaid,
+  calcComissaoLumix,
 } from '@/lib/metrics'
 
 const TABLE = 'oneclick_info_br_CRM'
@@ -26,33 +26,32 @@ const TABLE = 'oneclick_info_br_CRM'
 export interface DashboardMetrics {
   leadsTotal: number
   leadsBreakdown: EventBreakdown
-  taxaRespostaTotal: number
-  taxaRespostaBreakdown: EventBreakdown
-  vendasRecuperadasTotal: number
-  vendasRecuperadasChannel: ChannelSplit
-  taxaConversaoTotal: number
-  taxaConversaoBreakdown: EventBreakdown
-  ticketMedioTotal: number
-  ticketMedioChannel: ChannelMoney
-  valorRecuperadoTotal: number
-  valorRecuperadoChannel: ChannelMoney
+  taxaResposta: ResponseRate
+  vendasWpp: WppCount
+  taxaConversao: ConversionRate
+  ticketMedio: WppMoney
+  valorRecuperado: WppMoney
+  somaTotalOrderPaid: number
   faturamentoFrontPct: number
+  faturamentoFrontBreakdownPct: OriginBreakdown
+  comissaoLumix: number
 }
+
+const emptyEvent: EventBreakdown = { abandoned_cart: 0, generated_pix: 0, refused_card: 0 }
+const emptyOrigin: OriginBreakdown = { AC: 0, GP: 0, RC: 0 }
 
 const zero: DashboardMetrics = {
   leadsTotal: 0,
-  leadsBreakdown: { abandoned_cart: 0, generated_pix: 0, refused_card: 0 },
-  taxaRespostaTotal: 0,
-  taxaRespostaBreakdown: { abandoned_cart: 0, generated_pix: 0, refused_card: 0 },
-  vendasRecuperadasTotal: 0,
-  vendasRecuperadasChannel: { wpp: 0, front: 0 },
-  taxaConversaoTotal: 0,
-  taxaConversaoBreakdown: { abandoned_cart: 0, generated_pix: 0, refused_card: 0 },
-  ticketMedioTotal: 0,
-  ticketMedioChannel: { wpp: 0, front: 0 },
-  valorRecuperadoTotal: 0,
-  valorRecuperadoChannel: { wpp: 0, front: 0 },
+  leadsBreakdown: emptyEvent,
+  taxaResposta: { total: 0, breakdown: emptyEvent },
+  vendasWpp: { total: 0, breakdown: emptyOrigin },
+  taxaConversao: { total: 0, breakdown: emptyEvent },
+  ticketMedio: { total: 0, breakdown: emptyOrigin },
+  valorRecuperado: { total: 0, breakdown: emptyOrigin },
+  somaTotalOrderPaid: 0,
   faturamentoFrontPct: 0,
+  faturamentoFrontBreakdownPct: emptyOrigin,
+  comissaoLumix: 0,
 }
 
 export function useMetrics() {
@@ -88,34 +87,34 @@ export function useMetrics() {
 
         const leadsBreakdown = calcLeadsBreakdown(rows)
         const leadsTotal = calcLeadsTotal(leadsBreakdown)
-        const taxaRespostaTotal = calcResponseRateTotal(rows)
-        const taxaRespostaBreakdown = calcResponseRateBreakdown(rows)
-        const vendasRecuperadasTotal = calcOrderPaidCount(rows)
-        const vendasRecuperadasChannel = calcOrderPaidByChannel(rows)
-        const taxaConversaoTotal = calcConversionRateTotal(vendasRecuperadasTotal, leadsTotal)
-        const taxaConversaoBreakdown = calcConversionRateBreakdown(vendasRecuperadasTotal, leadsBreakdown)
-        const ticketMedioTotal = calcTicketMedio(rows)
-        const ticketMedioChannel = calcTicketMedioByChannel(rows)
-        const valorRecuperadoTotal = calcValorRecuperadoTotal(rows)
-        const valorRecuperadoChannel = calcValorRecuperadoByChannel(rows)
-        const faturamentoFrontPct = valorRecuperadoTotal
-          ? (valorRecuperadoChannel.wpp / valorRecuperadoTotal) * 100
+        const taxaResposta = calcResponseRate(rows)
+        const vendasWpp = calcVendasWpp(rows)
+        const taxaConversao = calcConversionRate(vendasWpp, leadsBreakdown)
+        const ticketMedio = calcTicketMedioWpp(rows)
+        const valorRecuperado = calcValorRecuperadoWpp(rows)
+        const somaTotalOrderPaid = calcSomaTotalOrderPaid(rows)
+        const faturamentoFrontPct = somaTotalOrderPaid
+          ? (valorRecuperado.total / somaTotalOrderPaid) * 100
           : 0
+        const faturamentoFrontBreakdownPct: OriginBreakdown = {
+          AC: somaTotalOrderPaid ? (valorRecuperado.breakdown.AC / somaTotalOrderPaid) * 100 : 0,
+          GP: somaTotalOrderPaid ? (valorRecuperado.breakdown.GP / somaTotalOrderPaid) * 100 : 0,
+          RC: somaTotalOrderPaid ? (valorRecuperado.breakdown.RC / somaTotalOrderPaid) * 100 : 0,
+        }
+        const comissaoLumix = calcComissaoLumix(valorRecuperado.total)
 
         setMetrics({
           leadsTotal,
           leadsBreakdown,
-          taxaRespostaTotal,
-          taxaRespostaBreakdown,
-          vendasRecuperadasTotal,
-          vendasRecuperadasChannel,
-          taxaConversaoTotal,
-          taxaConversaoBreakdown,
-          ticketMedioTotal,
-          ticketMedioChannel,
-          valorRecuperadoTotal,
-          valorRecuperadoChannel,
+          taxaResposta,
+          vendasWpp,
+          taxaConversao,
+          ticketMedio,
+          valorRecuperado,
+          somaTotalOrderPaid,
           faturamentoFrontPct,
+          faturamentoFrontBreakdownPct,
+          comissaoLumix,
         })
       } catch (e: any) {
         if (!cancelled) setError(e.message ?? 'Erro ao buscar dados')
