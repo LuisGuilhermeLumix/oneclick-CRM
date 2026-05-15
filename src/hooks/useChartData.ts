@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC, utcToLocalDateStr, getDaysInRange } from '@/lib/dates'
 
-const TABLE = 'obliviumdigital_nutra_br_CRM'
+const TABLE = 'oneclick_info_br_CRM'
 
 export interface ChartPoint {
   date: string
@@ -36,7 +36,7 @@ export function useChartData() {
           .select('created_at, "($)"')
           .gte('created_at', startOfDayUTC(dateFrom))
           .lte('created_at', endOfDayUTC(dateTo))
-          .eq('Event', 'order_paid')
+          .eq('event', 'order_paid')
           .eq('utm_source', 'WPP')
 
         if (product && product !== 'Todos') q = q.eq('product', product)

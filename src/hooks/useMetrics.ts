@@ -15,7 +15,7 @@ import {
   CRMRow,
 } from '@/lib/metrics'
 
-const TABLE = 'obliviumdigital_nutra_br_CRM'
+const TABLE = 'oneclick_info_br_CRM'
 
 function parseNum(val: any): number {
   if (val === null || val === undefined || val === '') return 0
@@ -72,7 +72,7 @@ export function useMetrics() {
 
         let q = supabase
           .from(TABLE)
-          .select('"Event", utm_source, status, "($)"')
+          .select('event, utm_source, status, "($)"')
           .gte('created_at', from)
           .lte('created_at', to)
         if (productFilter) q = q.eq('product', productFilter)

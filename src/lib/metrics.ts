@@ -6,8 +6,7 @@ export interface CRMRow {
   number?: string | null
   email?: string | null
   product?: string | null
-  Event?: string | null
-  amount?: string | number | null
+  event?: string | null
   utm_source?: string | null
   '($)'?: string | number | null
   status?: string | null
@@ -25,18 +24,18 @@ function parseNum(val: any): number {
 }
 
 export function calcAbandonedCarts(rows: CRMRow[]): number {
-  return rows.filter((r) => r.Event === 'abandoned_cart').length
+  return rows.filter((r) => r.event === 'abandoned_cart').length
 }
 
 export function calcDisparosFeitos(rows: CRMRow[]): number {
   return rows.filter(
-    (r) => r.Event === 'abandoned_cart' && r.status !== null && r.status !== '' && r.status !== undefined,
+    (r) => r.event === 'abandoned_cart' && r.status !== null && r.status !== '' && r.status !== undefined,
   ).length
 }
 
 export function calcResponseRate(rows: CRMRow[]): number {
   const disparos = rows.filter(
-    (r) => r.Event === 'abandoned_cart' && r.status !== null && r.status !== '' && r.status !== undefined,
+    (r) => r.event === 'abandoned_cart' && r.status !== null && r.status !== '' && r.status !== undefined,
   )
   if (!disparos.length) return 0
   const responderam = disparos.filter((r) => r.status !== 'primeiro_contato')
@@ -44,7 +43,7 @@ export function calcResponseRate(rows: CRMRow[]): number {
 }
 
 export function calcRecoveredSales(rows: CRMRow[]): number {
-  return rows.filter((r) => r.Event === 'order_paid' && r.utm_source === 'WPP').length
+  return rows.filter((r) => r.event === 'order_paid' && r.utm_source === 'WPP').length
 }
 
 export function calcConversionRate(recoveredSales: number, abandonedCarts: number): number {
@@ -53,7 +52,7 @@ export function calcConversionRate(recoveredSales: number, abandonedCarts: numbe
 }
 
 export function calcTicketMedio(rows: CRMRow[]): number {
-  const wppSales = rows.filter((r) => r.Event === 'order_paid' && r.utm_source === 'WPP')
+  const wppSales = rows.filter((r) => r.event === 'order_paid' && r.utm_source === 'WPP')
   if (!wppSales.length) return 0
   const total = wppSales.reduce((acc, r) => acc + parseNum(r['($)']), 0)
   return total / wppSales.length
@@ -61,7 +60,7 @@ export function calcTicketMedio(rows: CRMRow[]): number {
 
 export function calcValorRecuperado(rows: CRMRow[]): number {
   return rows
-    .filter((r) => r.Event === 'order_paid' && r.utm_source === 'WPP')
+    .filter((r) => r.event === 'order_paid' && r.utm_source === 'WPP')
     .reduce((acc, r) => acc + parseNum(r['($)']), 0)
 }
 

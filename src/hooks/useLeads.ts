@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
 
-const TABLE = 'obliviumdigital_nutra_br_CRM'
+const TABLE = 'oneclick_info_br_CRM'
 
 export interface LeadRow {
   id: string
@@ -12,7 +12,6 @@ export interface LeadRow {
   number: string
   email: string
   product: string
-  amount: number
   recoveredValue: number
 }
 
@@ -44,10 +43,10 @@ export function useLeads(search: string, page: number) {
 
         let q = supabase
           .from(TABLE)
-          .select('id, created_at, name, number, email, product, amount, "($)"')
+          .select('id, created_at, name, number, email, product, "($)"')
           .gte('created_at', from)
           .lte('created_at', to)
-          .eq('Event', 'order_paid')
+          .eq('event', 'order_paid')
           .eq('utm_source', 'WPP')
           .order('created_at', { ascending: false })
           .limit(50)
@@ -74,7 +73,6 @@ export function useLeads(search: string, page: number) {
             number: r.number ?? '—',
             email: r.email ?? '—',
             product: r.product ?? '—',
-            amount: parseNum(r.amount),
             recoveredValue: parseNum(r['($)']),
           }))
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
-import { formatCurrency, formatDateLong, formatNumber } from "@/lib/format";
+import { formatCurrency, formatDateLong } from "@/lib/format";
 
 export function LeadsTable() {
   const [search, setSearch] = useState("");
@@ -34,7 +34,7 @@ export function LeadsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#0a0a0a]">
-              {["Data", "Nome", "Telefone", "Email", "Produto", "Quantidade", "Canal", "Valor Recuperado"].map((h) => (
+              {["Data", "Nome", "Telefone", "Email", "Produto", "Canal", "Valor Recuperado"].map((h) => (
                 <th
                   key={h}
                   className="text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#555] px-4 py-3"
@@ -48,7 +48,7 @@ export function LeadsTable() {
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i} className="border-b border-[#0f0f0f]">
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} className="px-4 py-3.5">
                       <div className="h-4 rounded animate-pulse bg-white/[0.04]" />
                     </td>
@@ -57,7 +57,7 @@ export function LeadsTable() {
               ))
             ) : pageData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-16 text-center">
+                <td colSpan={7} className="py-16 text-center">
                   <Inbox size={48} className="mx-auto text-[#333] mb-3" />
                   <div className="text-sm text-[#444]">Nenhum lead encontrado</div>
                 </td>
@@ -93,9 +93,7 @@ export function LeadsTable() {
               </div>
               <div className="text-xs text-[#888] font-mono truncate">{lead.number}</div>
               <div className="text-xs text-[#888] truncate">{lead.email}</div>
-              <div className="text-xs text-[#666]">
-                {lead.product} · {formatNumber(lead.amount)} Frascos
-              </div>
+              <div className="text-xs text-[#666]">{lead.product}</div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[11px] text-[#555]">{formatDateLong(lead.date)}</span>
                 <span className="text-[13px] font-semibold text-white">
@@ -138,7 +136,6 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
       <td className="px-4 py-3.5 text-[#aaa] font-mono text-xs">{lead.number}</td>
       <td className="px-4 py-3.5 text-[#ddd]">{lead.email}</td>
       <td className="px-4 py-3.5 text-[#aaa]">{lead.product}</td>
-      <td className="px-4 py-3.5 text-[#aaa]">{formatNumber(lead.amount)} Frascos</td>
       <td className="px-4 py-3.5">
         <ChannelBadge />
       </td>

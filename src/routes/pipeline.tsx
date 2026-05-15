@@ -6,14 +6,14 @@ import { AppLayout } from "@/components/AppLayout";
 export const Route = createFileRoute("/pipeline")({
   head: () => ({
     meta: [
-      { title: "Pipeline — Lumix - Oblivium Digital" },
+      { title: "Pipeline — Lumix - One Click CRM" },
       { name: "description", content: "Pipeline de leads de carrinho abandonado." },
     ],
   }),
   component: PipelinePage,
 });
 
-const TABLE = "obliviumdigital_nutra_br_CRM";
+const TABLE = "oneclick_info_br_CRM";
 
 interface PipelineLead {
   id: number;
@@ -76,7 +76,7 @@ function PipelinePage() {
       const { data, error } = await supabase
         .from(TABLE)
         .select("id, name, number, product, status, created_at")
-        .eq("Event", "abandoned_cart")
+        .eq("event", "abandoned_cart")
         .not("status", "is", null)
         .neq("status", "")
         .order("created_at", { ascending: false });
@@ -100,7 +100,7 @@ function PipelinePage() {
         { event: "*", schema: "public", table: TABLE },
         (payload) => {
           const row = (payload.new ?? payload.old) as any;
-          if (!row || row.Event !== "abandoned_cart") return;
+          if (!row || row.event !== "abandoned_cart") return;
 
           setLeads((prev) => {
             if (payload.eventType === "DELETE") {

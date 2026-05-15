@@ -22,7 +22,7 @@ import { formatCurrency, formatNumber, formatPercent } from "@/lib/format";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Lumix - Oblivium Digital" },
+      { title: "Dashboard — Lumix - One Click CRM" },
       { name: "description", content: "Métricas de recuperação de vendas em tempo real." },
     ],
   }),
