@@ -51,3 +51,9 @@ export function getLeadOrigin(utm_source: string | null | undefined): LeadOrigin
 export function isWppSource(utm_source: string | null | undefined): boolean {
   return !!utm_source && utm_source.includes('WPP')
 }
+
+export const PIPELINE_EVENT_CONFIG: Record<string, { label: string; color: string }> = {
+  abandoned_cart: { label: 'Carrinho Abandonado', color: '#eab308' },
+  refused_card:   { label: 'Cartão Recusado',     color: '#ef4444' },
+  generated_pix:  { label: 'Pix Gerado',          color: '#22c55e' },
+}
