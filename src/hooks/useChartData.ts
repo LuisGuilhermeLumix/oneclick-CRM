@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, fetchAllPaged } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC, utcToLocalDateStr, getDaysInRange } from '@/lib/dates'
 import { getLeadOrigin } from '@/lib/events'
@@ -30,24 +30,28 @@ export function useChartData() {
     async function load() {
       setLoading(true)
       try {
-        let q = supabase
-          .from(TABLE)
-          .select('created_at, utm_source, "($)"')
-          .gte('created_at', startOfDayUTC(dateFrom))
-          .lte('created_at', endOfDayUTC(dateTo))
-          .eq('Event', 'order_paid')
-          .like('utm_source', '%WPP%')
+        const rows = await fetchAllPaged<{ created_at: string; utm_source: string | null; '($)': any }>(
+          (fromIdx, toIdx) => {
+            let q = supabase
+              .from(TABLE)
+              .select('created_at, utm_source, "($)"')
+              .gte('created_at', startOfDayUTC(dateFrom))
+              .lte('created_at', endOfDayUTC(dateTo))
+              .eq('Event', 'order_paid')
+              .like('utm_source', '%WPP%')
+              .order('created_at', { ascending: true })
 
-        if (product && product !== 'Todos') q = q.eq('product', product)
+            if (product && product !== 'Todos') q = q.eq('product', product)
 
-        const { data: rows, error } = await q
-        if (error) throw error
+            return q.range(fromIdx, toIdx)
+          },
+        )
 
         const map: Record<string, ChartPoint> = {}
         for (const day of getDaysInRange(dateFrom, dateTo)) {
           map[day] = emptyPoint(day)
         }
-        ;((rows ?? []) as Array<{ created_at: string; utm_source: string | null; '($)': any }>).forEach((r) => {
+        for (const r of rows) {
           const day = utcToLocalDateStr(r.created_at)
           if (!map[day]) map[day] = emptyPoint(day)
           const origin = getLeadOrigin(r.utm_source)
@@ -56,7 +60,7 @@ export function useChartData() {
             map[day][`${origin}_qtd` as const]++
             map[day][`${origin}_val` as const] += v
           }
-        })
+        }
 
         const points: ChartPoint[] = Object.values(map).sort((a, b) =>
           a.date.localeCompare(b.date),

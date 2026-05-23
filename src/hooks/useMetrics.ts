@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, fetchAllPaged } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
 import {
@@ -74,18 +74,18 @@ export function useMetrics() {
 
         const productFilter = product && product !== 'Todos' ? product : null
 
-        let q = supabase
-          .from(TABLE)
-          .select('"Event", utm_source, status, "($)"')
-          .gte('created_at', from)
-          .lte('created_at', to)
-        if (productFilter) q = q.eq('product', productFilter)
+        const rows = await fetchAllPaged<CRMRow>((fromIdx, toIdx) => {
+          let q = supabase
+            .from(TABLE)
+            .select('"Event", utm_source, status, "($)"')
+            .gte('created_at', from)
+            .lte('created_at', to)
+            .order('created_at', { ascending: true })
+          if (productFilter) q = q.eq('product', productFilter)
+          return q.range(fromIdx, toIdx)
+        })
 
-        const { data, error } = await q
-        if (error) throw error
         if (cancelled) return
-
-        const rows = (data ?? []) as CRMRow[]
 
         const leadsBreakdown = calcLeadsBreakdown(rows)
         const leadsTotal = calcLeadsTotal(leadsBreakdown)
