@@ -8,6 +8,7 @@ import {
   Users,
   MessageCircle,
   DollarSign,
+  Banknote,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { MetricCard, BreakdownItem } from "@/components/MetricCard";
@@ -73,7 +74,7 @@ function DashboardPage() {
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 auto-rows-fr">
           <MetricCard
             label="Leads"
             icon={Users}
@@ -107,7 +108,7 @@ function DashboardPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 auto-rows-fr">
           <MetricCard
             label="Ticket Médio"
             icon={Receipt}
@@ -131,6 +132,14 @@ function DashboardPage() {
             value={formatPercent(m.faturamentoFrontPct, 1)}
             subInfo="WPP recuperado vs. total order_paid"
             breakdown={fatFrontBreakdown}
+          />
+          <MetricCard
+            label="Faturamento Total (Front)"
+            icon={Banknote}
+            variant="brand"
+            loading={loading}
+            value={formatCurrency(m.faturamentoFront)}
+            subInfo="order_paid sem utm_source WPP"
           />
           <MetricCard
             label="Comissão Lumix"

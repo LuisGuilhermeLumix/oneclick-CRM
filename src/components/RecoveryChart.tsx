@@ -8,7 +8,7 @@ import {
   YAxis,
 } from "recharts";
 import { useChartData } from "@/hooks/useChartData";
-import { formatDateShort, formatDateLong } from "@/lib/format";
+import { formatDateShort, formatDateLong, formatCurrency } from "@/lib/format";
 import { ORIGIN_COLORS, ORIGIN_LABELS } from "@/lib/events";
 
 const SERIES = [
@@ -17,22 +17,35 @@ const SERIES = [
   { key: "RC" as const, label: ORIGIN_LABELS.RC, color: ORIGIN_COLORS.RC },
 ];
 
+function formatBRLCompact(value: number): string {
+  if (value >= 1000) {
+    return `R$ ${(value / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k`;
+  }
+  return `R$ ${value.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+}
+
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
+  const point = payload[0]?.payload as Record<string, number> | undefined;
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[200px]">
+    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[220px]">
       <p className="mb-2.5 text-[#666] font-medium">{formatDateLong(label)}</p>
-      <div className="space-y-1">
+      <div className="space-y-2">
         {SERIES.map((s) => {
-          const entry = payload.find((p: any) => p.dataKey === s.key);
-          const v = entry ? entry.value : 0;
+          const qtd = point ? (point[`${s.key}_qtd`] ?? 0) : 0;
+          const val = point ? (point[`${s.key}_val`] ?? 0) : 0;
           return (
-            <div key={s.key} className="flex items-center justify-between gap-4">
-              <span style={{ color: s.color }} className="flex items-center gap-1.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
-                {s.label}
-              </span>
-              <span className="text-white font-semibold tabular-nums">{v}</span>
+            <div key={s.key} className="space-y-0.5">
+              <div className="flex items-center justify-between gap-4">
+                <span style={{ color: s.color }} className="flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />
+                  {s.label}
+                </span>
+                <span className="text-[#888] tabular-nums text-[11px]">{qtd} vendas</span>
+              </div>
+              <div className="text-right text-white font-semibold tabular-nums">
+                {formatCurrency(val)}
+              </div>
             </div>
           );
         })}
@@ -49,7 +62,7 @@ export function RecoveryChart() {
       <div className="surface-panel p-6">
         <div className="h-4 w-48 rounded animate-pulse bg-white/[0.04] mb-2" />
         <div className="h-3 w-64 rounded animate-pulse bg-white/[0.03] mb-5" />
-        <div className="h-[220px] w-full rounded animate-pulse bg-white/[0.03]" />
+        <div className="h-[260px] w-full rounded animate-pulse bg-white/[0.03]" />
       </div>
     );
   }
@@ -62,7 +75,7 @@ export function RecoveryChart() {
             Recuperações ao longo do tempo
           </h2>
           <p className="text-xs text-[#555] mt-1">
-            Vendas recuperadas via WhatsApp por origem do lead
+            Valor recuperado via WhatsApp por origem do lead
           </p>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
@@ -72,11 +85,11 @@ export function RecoveryChart() {
         </div>
       </div>
 
-      <div style={{ width: "100%", height: typeof window !== "undefined" && window.innerWidth < 768 ? 180 : 260 }}>
+      <div style={{ width: "100%", height: typeof window !== "undefined" && window.innerWidth < 768 ? 200 : 280 }}>
         <ResponsiveContainer>
           <LineChart
             data={data}
-            margin={{ top: 5, right: 8, left: -20, bottom: 0 }}
+            margin={{ top: 5, right: 8, left: 8, bottom: 0 }}
           >
             <CartesianGrid
               vertical={false}
@@ -96,7 +109,8 @@ export function RecoveryChart() {
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              allowDecimals={false}
+              width={70}
+              tickFormatter={formatBRLCompact}
             />
             <Tooltip
               content={<CustomTooltip />}
@@ -106,7 +120,8 @@ export function RecoveryChart() {
               <Line
                 key={s.key}
                 type="monotone"
-                dataKey={s.key}
+                dataKey={`${s.key}_val`}
+                name={s.label}
                 stroke={s.color}
                 strokeWidth={2}
                 dot={false}

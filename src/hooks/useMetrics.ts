@@ -32,6 +32,7 @@ export interface DashboardMetrics {
   ticketMedio: WppMoney
   valorRecuperado: WppMoney
   somaTotalOrderPaid: number
+  faturamentoFront: number
   faturamentoFrontPct: number
   faturamentoFrontBreakdownPct: OriginBreakdown
   comissaoLumix: number
@@ -49,6 +50,7 @@ const zero: DashboardMetrics = {
   ticketMedio: { total: 0, breakdown: emptyOrigin },
   valorRecuperado: { total: 0, breakdown: emptyOrigin },
   somaTotalOrderPaid: 0,
+  faturamentoFront: 0,
   faturamentoFrontPct: 0,
   faturamentoFrontBreakdownPct: emptyOrigin,
   comissaoLumix: 0,
@@ -93,6 +95,7 @@ export function useMetrics() {
         const ticketMedio = calcTicketMedioWpp(rows)
         const valorRecuperado = calcValorRecuperadoWpp(rows)
         const somaTotalOrderPaid = calcSomaTotalOrderPaid(rows)
+        const faturamentoFront = Math.max(0, somaTotalOrderPaid - valorRecuperado.total)
         const faturamentoFrontPct = somaTotalOrderPaid
           ? (valorRecuperado.total / somaTotalOrderPaid) * 100
           : 0
@@ -112,6 +115,7 @@ export function useMetrics() {
           ticketMedio,
           valorRecuperado,
           somaTotalOrderPaid,
+          faturamentoFront,
           faturamentoFrontPct,
           faturamentoFrontBreakdownPct,
           comissaoLumix,

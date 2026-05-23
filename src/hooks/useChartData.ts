@@ -3,14 +3,22 @@ import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC, utcToLocalDateStr, getDaysInRange } from '@/lib/dates'
 import { getLeadOrigin } from '@/lib/events'
+import { parseNum } from '@/lib/metrics'
 
 const TABLE = 'oneclick_info_br_CRM'
 
 export interface ChartPoint {
   date: string
-  AC: number
-  GP: number
-  RC: number
+  AC_qtd: number
+  AC_val: number
+  GP_qtd: number
+  GP_val: number
+  RC_qtd: number
+  RC_val: number
+}
+
+function emptyPoint(date: string): ChartPoint {
+  return { date, AC_qtd: 0, AC_val: 0, GP_qtd: 0, GP_val: 0, RC_qtd: 0, RC_val: 0 }
 }
 
 export function useChartData() {
@@ -24,7 +32,7 @@ export function useChartData() {
       try {
         let q = supabase
           .from(TABLE)
-          .select('created_at, utm_source')
+          .select('created_at, utm_source, "($)"')
           .gte('created_at', startOfDayUTC(dateFrom))
           .lte('created_at', endOfDayUTC(dateTo))
           .eq('Event', 'order_paid')
@@ -37,14 +45,16 @@ export function useChartData() {
 
         const map: Record<string, ChartPoint> = {}
         for (const day of getDaysInRange(dateFrom, dateTo)) {
-          map[day] = { date: day, AC: 0, GP: 0, RC: 0 }
+          map[day] = emptyPoint(day)
         }
-        ;((rows ?? []) as Array<{ created_at: string; utm_source: string | null }>).forEach((r) => {
+        ;((rows ?? []) as Array<{ created_at: string; utm_source: string | null; '($)': any }>).forEach((r) => {
           const day = utcToLocalDateStr(r.created_at)
-          if (!map[day]) map[day] = { date: day, AC: 0, GP: 0, RC: 0 }
+          if (!map[day]) map[day] = emptyPoint(day)
           const origin = getLeadOrigin(r.utm_source)
           if (origin === 'AC' || origin === 'GP' || origin === 'RC') {
-            map[day][origin]++
+            const v = parseNum(r['($)'])
+            map[day][`${origin}_qtd` as const]++
+            map[day][`${origin}_val` as const] += v
           }
         })
 
