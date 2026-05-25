@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { supabase } from "@/lib/supabase";
+import { supabase, fetchAllPaged } from "@/lib/supabase";
 import { AppLayout } from "@/components/AppLayout";
-import { PIPELINE_EVENT_CONFIG } from "@/lib/events";
+import { LEAD_EVENTS, PIPELINE_EVENT_CONFIG } from "@/lib/events";
 import { useFilters } from "@/hooks/useFilters";
 import { startOfDayUTC, endOfDayUTC } from "@/lib/dates";
 
@@ -79,6 +80,15 @@ const STATUS_LABEL_MAP: Record<string, string> = COLUMNS.reduce((acc, c) => {
   return acc;
 }, {} as Record<string, string>);
 
+const EVENTO_OPCOES = [
+  { value: "todos",          label: "Todos" },
+  { value: "abandoned_cart", label: "Carrinho Abandonado" },
+  { value: "generated_pix",  label: "Pix Gerado" },
+  { value: "refused_card",   label: "Cartão Recusado" },
+] as const;
+
+type EventoFiltro = (typeof EVENTO_OPCOES)[number]["value"];
+
 function formatDatePtBR(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -91,7 +101,8 @@ function formatDatePtBR(iso: string): string {
 }
 
 function PipelinePage() {
-  const { dateFrom, dateTo, product } = useFilters();
+  const { dateFrom, dateTo } = useFilters();
+  const [eventoFiltro, setEventoFiltro] = useState<EventoFiltro>("todos");
   const [leads, setLeads] = useState<PipelineLead[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,28 +111,36 @@ function PipelinePage() {
 
     async function load() {
       setLoading(true);
-      let q = supabase
-        .from(TABLE)
-        .select('id, name, number, product, status, "Event", created_at')
-        .neq("Event", "order_paid")
-        .not("status", "is", null)
-        .neq("status", "")
-        .gte("created_at", startOfDayUTC(dateFrom))
-        .lte("created_at", endOfDayUTC(dateTo))
-        .order("created_at", { ascending: false });
+      try {
+        const rows = await fetchAllPaged<PipelineLead>((fromIdx, toIdx) => {
+          let q = supabase
+            .from(TABLE)
+            .select('id, name, number, product, status, "Event", created_at')
+            .not("status", "is", null)
+            .neq("status", "")
+            .neq("Event", "order_paid")
+            .gte("created_at", startOfDayUTC(dateFrom))
+            .lte("created_at", endOfDayUTC(dateTo))
+            .order("created_at", { ascending: false });
 
-      if (product && product !== "Todos") q = q.eq("product", product);
+          if (eventoFiltro === "todos") {
+            q = q.in("Event", LEAD_EVENTS as unknown as string[]);
+          } else {
+            q = q.eq("Event", eventoFiltro);
+          }
 
-      const { data, error } = await q;
+          return q.range(fromIdx, toIdx);
+        });
 
-      if (cancelled) return;
-      if (error) {
-        console.error(error);
+        if (cancelled) return;
+        setLeads(rows);
+      } catch (err) {
+        if (cancelled) return;
+        console.error(err);
         setLeads([]);
-      } else {
-        setLeads((data ?? []) as PipelineLead[]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
 
     load();
@@ -134,6 +153,8 @@ function PipelinePage() {
         (payload) => {
           const row = (payload.new ?? payload.old) as any;
           if (!row || row.Event === "order_paid") return;
+          if (eventoFiltro !== "todos" && row.Event !== eventoFiltro) return;
+          if (!(LEAD_EVENTS as readonly string[]).includes(row.Event)) return;
 
           setLeads((prev) => {
             if (payload.eventType === "DELETE") {
@@ -146,7 +167,6 @@ function PipelinePage() {
             const fromMs = new Date(startOfDayUTC(dateFrom)).getTime();
             const toMs = new Date(endOfDayUTC(dateTo)).getTime();
             if (created < fromMs || created > toMs) return next;
-            if (product && product !== "Todos" && row.product !== product) return next;
 
             const updated: PipelineLead = {
               id: row.id,
@@ -171,7 +191,7 @@ function PipelinePage() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [dateFrom, dateTo, product]);
+  }, [dateFrom, dateTo, eventoFiltro]);
 
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -193,8 +213,13 @@ function PipelinePage() {
   }, [leads]);
 
   return (
-    <AppLayout title="Pipeline (Leads)">
+    <AppLayout title="Pipeline (Leads)" showFilters={false}>
       <div className="space-y-6">
+        <PipelineFilters
+          eventoFiltro={eventoFiltro}
+          onChangeEvento={setEventoFiltro}
+        />
+
         <div className="-mx-4 md:-mx-6 px-4 md:px-6 overflow-x-auto pb-2">
           <div className="flex gap-3 min-w-max">
             {COLUMNS.map((col) => {
@@ -202,7 +227,7 @@ function PipelinePage() {
               return (
                 <div
                   key={col.status}
-                  className="w-[280px] flex-shrink-0 rounded-xl bg-[#0a0a0a] border border-[#141414] flex flex-col max-h-[calc(100vh-220px)]"
+                  className="w-[280px] flex-shrink-0 rounded-xl bg-[#0a0a0a] border border-[#141414] flex flex-col max-h-[calc(100vh-260px)]"
                 >
                   <div className="px-4 py-3 border-b border-[#141414] flex items-center justify-between gap-2 sticky top-0 bg-[#0a0a0a] rounded-t-xl">
                     <span
@@ -243,6 +268,138 @@ function PipelinePage() {
         <StatusPieChart data={pieData} loading={loading} />
       </div>
     </AppLayout>
+  );
+}
+
+const QUICK_RANGES = [
+  { key: "hoje",  label: "Hoje" },
+  { key: "ontem", label: "Ontem" },
+  { key: "7d",    label: "7 dias" },
+  { key: "mes",   label: "Este mês" },
+] as const;
+
+function PipelineFilters({
+  eventoFiltro,
+  onChangeEvento,
+}: {
+  eventoFiltro: EventoFiltro;
+  onChangeEvento: (v: EventoFiltro) => void;
+}) {
+  const { dateFrom, dateTo, activeRange, setRange, applyCustom } = useFilters();
+  const [eventoOpen, setEventoOpen] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customFrom, setCustomFrom] = useState(dateFrom);
+  const [customTo, setCustomTo] = useState(dateTo);
+
+  const currentEventoLabel =
+    EVENTO_OPCOES.find((o) => o.value === eventoFiltro)?.label ?? "Todos";
+
+  function handleApplyCustom() {
+    applyCustom(customFrom, customTo);
+    setCustomOpen(false);
+  }
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {QUICK_RANGES.map(({ key, label }) => (
+        <button
+          key={key}
+          onClick={() => setRange(key)}
+          className={[
+            "h-9 px-3 text-xs font-medium rounded-md border transition-colors duration-150",
+            activeRange === key
+              ? "bg-[rgba(128,215,248,0.12)] border-[#80d7f8] text-[#80d7f8]"
+              : "bg-[#111] border-[#222] text-[#777] hover:text-[#ccc] hover:border-[#2a2a2a]",
+          ].join(" ")}
+        >
+          {label}
+        </button>
+      ))}
+
+      <div className="relative">
+        <button
+          onClick={() => setCustomOpen((v) => !v)}
+          className={[
+            "h-9 flex items-center gap-1.5 px-3 text-xs font-medium rounded-md border transition-colors duration-150",
+            activeRange === "custom"
+              ? "bg-[rgba(128,215,248,0.12)] border-[#80d7f8] text-[#80d7f8]"
+              : "bg-[#111] border-[#222] text-[#777] hover:text-[#ccc] hover:border-[#2a2a2a]",
+          ].join(" ")}
+        >
+          <Calendar size={12} />
+          Customizado
+          {customOpen
+            ? <ChevronUp size={11} className="text-[#555]" />
+            : <ChevronDown size={11} className="text-[#555]" />}
+        </button>
+
+        {customOpen && (
+          <div className="absolute left-0 mt-1.5 w-[280px] rounded-xl bg-[#0f0f0f] border border-[#1e1e1e] p-4 shadow-xl z-50">
+            <p className="text-[11px] text-[#555] uppercase tracking-wide mb-3">
+              Período personalizado
+            </p>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-[11px] text-[#666] mb-1 block">De</label>
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] text-[#ccc] text-xs outline-none focus:border-[#80d7f8] [color-scheme:dark] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-[#666] mb-1 block">Até</label>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-[#0a0a0a] border border-[#1e1e1e] text-[#ccc] text-xs outline-none focus:border-[#80d7f8] [color-scheme:dark] transition-colors"
+                />
+              </div>
+              <button
+                onClick={handleApplyCustom}
+                className="w-full h-9 rounded-lg bg-[#80d7f8] text-black text-xs font-bold hover:bg-[#a8e8ff] transition-colors"
+              >
+                Aplicar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="relative">
+        <button
+          onClick={() => setEventoOpen((v) => !v)}
+          className="h-9 flex items-center gap-2 px-3.5 rounded-lg bg-[#111] border border-[#222] text-[#ccc] text-sm hover:border-[#2a2a2a] transition-colors"
+        >
+          <span className="text-[#666] text-xs">Evento:</span>
+          <span className="text-xs max-w-[160px] truncate">{currentEventoLabel}</span>
+          <ChevronDown size={12} className="text-[#666]" />
+        </button>
+        {eventoOpen && (
+          <div className="absolute left-0 mt-1.5 w-56 rounded-lg bg-[#0f0f0f] border border-[#1e1e1e] py-1 shadow-lg z-50">
+            {EVENTO_OPCOES.map((o) => (
+              <button
+                key={o.value}
+                onClick={() => {
+                  onChangeEvento(o.value);
+                  setEventoOpen(false);
+                }}
+                className={[
+                  "w-full text-left px-3 py-1.5 text-sm transition-colors truncate",
+                  o.value === eventoFiltro
+                    ? "bg-[#161616] text-[#80d7f8]"
+                    : "text-[#ccc] hover:bg-[#161616]",
+                ].join(" ")}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
