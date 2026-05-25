@@ -7,7 +7,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Faltam variáveis de ambiente do Supabase. Verifique o .env')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+})
 
 const PAGE_SIZE = 1000
 
