@@ -125,15 +125,6 @@ function DashboardPage() {
             breakdown={originBreakdown(m.valorRecuperado.breakdown, formatCurrency)}
           />
           <MetricCard
-            label="Faturamento Sob o Front"
-            icon={Wallet}
-            variant="brand2"
-            loading={loading}
-            value={formatPercent(m.faturamentoFrontPct, 1)}
-            subInfo="WPP recuperado vs. total order_paid"
-            breakdown={fatFrontBreakdown}
-          />
-          <MetricCard
             label="Faturamento Total (Front)"
             icon={Banknote}
             variant="brand"
@@ -148,6 +139,15 @@ function DashboardPage() {
             loading={loading}
             value={formatCurrency(m.comissaoLumix)}
             subInfo="20% sobre o valor recuperado WPP"
+          />
+          <MetricCard
+            label="Faturamento Sob o Front"
+            icon={Wallet}
+            variant="brand2"
+            loading={loading}
+            value={formatPercent(m.faturamentoFrontPct, 1)}
+            subInfo="WPP recuperado vs. total order_paid"
+            breakdown={fatFrontBreakdown}
           />
         </div>
 
