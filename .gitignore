@@ -34,3 +34,6 @@ dist-ssr
 
 # Claude Code
 .claude/
+
+# n8n workflows (local only)
+n8n/
