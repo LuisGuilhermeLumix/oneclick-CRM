@@ -7,16 +7,32 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+
     supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return
       setUser(data.session?.user ?? null)
       setLoading(false)
     })
 
+    // onAuthStateChange dispara INITIAL_SESSION no boot e em login/logout/refresh,
+    // mantendo o user em sincronia mesmo que o getSession acima atrase.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_ev, session) => {
+      if (!mounted) return
       setUser(session?.user ?? null)
+      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Salvaguarda: se o getSession travar, libera a UI em vez de spinner infinito.
+    const timeout = setTimeout(() => {
+      if (mounted) setLoading(false)
+    }, 3000)
+
+    return () => {
+      mounted = false
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signOut = () => supabase.auth.signOut()
