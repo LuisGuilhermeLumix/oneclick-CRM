@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, Kanban, Headset, Megaphone } from "lucide-react";
+import { LayoutDashboard, LogOut, Kanban, Headset, Megaphone, BarChart3 } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -7,6 +7,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pipeline", label: "Pipeline (Leads)", icon: Kanban },
   { to: "/remarketing", label: "Remarketing", icon: Megaphone },
+  { to: "/remarketing-dashboard", label: "Dash Remarketing", icon: BarChart3 },
   { to: "/suporte", label: "Suporte", icon: Headset },
 ] as const;
 
@@ -33,7 +34,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
 
       <nav className="flex-1 flex flex-col gap-0.5">
         {navItems.map((item) => {
-          const active = location.pathname.startsWith(item.to);
+          const active = location.pathname === item.to;
           const Icon = item.icon;
           return (
             <Link
