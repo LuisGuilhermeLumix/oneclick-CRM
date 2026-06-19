@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SuporteRouteImport } from './routes/suporte'
+import { Route as RemarketingRouteImport } from './routes/remarketing'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const SuporteRoute = SuporteRouteImport.update({
   id: '/suporte',
   path: '/suporte',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RemarketingRoute = RemarketingRouteImport.update({
+  id: '/remarketing',
+  path: '/remarketing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PipelineRoute = PipelineRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/pipeline': typeof PipelineRoute
+  '/remarketing': typeof RemarketingRoute
   '/suporte': typeof SuporteRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/pipeline': typeof PipelineRoute
+  '/remarketing': typeof RemarketingRoute
   '/suporte': typeof SuporteRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,28 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/pipeline': typeof PipelineRoute
+  '/remarketing': typeof RemarketingRoute
   '/suporte': typeof SuporteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/pipeline' | '/suporte'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/pipeline'
+    | '/remarketing'
+    | '/suporte'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/pipeline' | '/suporte'
-  id: '__root__' | '/' | '/dashboard' | '/login' | '/pipeline' | '/suporte'
+  to: '/' | '/dashboard' | '/login' | '/pipeline' | '/remarketing' | '/suporte'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/pipeline'
+    | '/remarketing'
+    | '/suporte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +98,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   PipelineRoute: typeof PipelineRoute
+  RemarketingRoute: typeof RemarketingRoute
   SuporteRoute: typeof SuporteRoute
 }
 
@@ -86,6 +109,13 @@ declare module '@tanstack/react-router' {
       path: '/suporte'
       fullPath: '/suporte'
       preLoaderRoute: typeof SuporteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/remarketing': {
+      id: '/remarketing'
+      path: '/remarketing'
+      fullPath: '/remarketing'
+      preLoaderRoute: typeof RemarketingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pipeline': {
@@ -124,6 +154,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   PipelineRoute: PipelineRoute,
+  RemarketingRoute: RemarketingRoute,
   SuporteRoute: SuporteRoute,
 }
 export const routeTree = rootRouteImport

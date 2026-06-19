@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, Kanban, Headset } from "lucide-react";
+import { LayoutDashboard, LogOut, Kanban, Headset, Megaphone } from "lucide-react";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pipeline", label: "Pipeline (Leads)", icon: Kanban },
+  { to: "/remarketing", label: "Remarketing", icon: Megaphone },
   { to: "/suporte", label: "Suporte", icon: Headset },
 ] as const;
 
