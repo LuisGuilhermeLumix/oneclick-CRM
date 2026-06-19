@@ -107,6 +107,17 @@ function prettify(status: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Normaliza status p/ comparar: "Em Contato" -> "em_contato", "Dúvida Eficácia" -> "duvida_eficacia"
+function slug(status: string): string {
+  return status
+    .normalize("NFD")
+    .replace(/[^\x00-\x7F]/g, "") // remove acentos (marcas de combinação ficam fora do ASCII)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 function RemarketingPage() {
   const [leads, setLeads] = useState<RmktLead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,15 +190,20 @@ function RemarketingPage() {
 
   // Colunas = predefinidas + dinâmicas (status que apareceram e não existem ainda)
   const columns = useMemo<ColumnDef[]>(() => {
-    const extras = new Set<string>();
+    const extras = new Map<string, string>(); // slug -> texto original do status
     for (const l of leads) {
-      const s = l.status?.trim();
-      if (s && !KNOWN_STATUSES.has(s)) extras.add(s);
+      const raw = l.status?.trim();
+      if (!raw) continue;
+      const key = slug(raw);
+      if (!key || KNOWN_STATUSES.has(key)) continue;
+      if (!extras.has(key)) extras.set(key, raw);
     }
-    const dynamic: ColumnDef[] = [...extras].sort().map((s) => {
-      const color = colorForStatus(s);
-      return { status: s, label: prettify(s), color, bg: color + "20" };
-    });
+    const dynamic: ColumnDef[] = [...extras.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, label]) => {
+        const color = colorForStatus(key);
+        return { status: key, label: prettify(label), color, bg: color + "20" };
+      });
     return [...COLUMNS, ...dynamic];
   }, [leads]);
 
@@ -201,9 +217,9 @@ function RemarketingPage() {
 
     const counts: Record<string, number> = {};
     for (const l of leads) {
-      const s = l.status ?? "";
-      if (!s) continue;
-      counts[s] = (counts[s] || 0) + 1;
+      const key = slug(l.status ?? "");
+      if (!key) continue;
+      counts[key] = (counts[key] || 0) + 1;
     }
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
     return Object.entries(counts)
@@ -223,7 +239,7 @@ function RemarketingPage() {
         <div className="-mx-4 md:-mx-6 px-4 md:px-6 overflow-x-auto pb-2">
           <div className="flex gap-3 min-w-max">
             {columns.map((col) => {
-              const colLeads = leads.filter((l) => l.status === col.status);
+              const colLeads = leads.filter((l) => slug(l.status ?? "") === col.status);
               return (
                 <div
                   key={col.status}
